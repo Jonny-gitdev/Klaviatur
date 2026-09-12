@@ -1,0 +1,5 @@
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class de.klaviatur.data.** { *; }
+-keep class com.google.gson.** { *; }
+-dontwarn okhttp3.**

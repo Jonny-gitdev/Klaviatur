@@ -1,0 +1,33 @@
+# Gradle files
+.gradle/
+build/
+
+# Android Studio / IntelliJ files
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# Kotlin files
+.kotlin/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Secrets (common patterns)
+*.jks
+*.keystore
+*.key
+*.pem
+*.p12
+google-services.json
+*.env
+
+# App-specific build outputs
+app/build/
