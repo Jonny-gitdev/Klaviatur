@@ -6,7 +6,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import de.klaviatur.R
 import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
@@ -25,10 +28,10 @@ fun ManualEntryScreen(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
-                title = { Text("Manuelle Eingabe") },
+                title = { Text(stringResource(R.string.filter_manual)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
@@ -45,13 +48,13 @@ fun ManualEntryScreen(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Titel") },
+                label = { Text(stringResource(R.string.field_title)) },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = artist,
                 onValueChange = { artist = it },
-                label = { Text("Künstler") },
+                label = { Text(stringResource(R.string.field_composer)) },
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
@@ -61,9 +64,11 @@ fun ManualEntryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                textStyle = MaterialTheme.typography.bodySmall
+                textStyle = MaterialTheme.typography.bodySmall.copy(
+                    fontFamily = FontFamily.Monospace
+                )
             )
-            
+
             Button(
                 onClick = {
                     viewModel.saveUserSong(title, artist, chordProText, "manual")
@@ -73,7 +78,7 @@ fun ManualEntryScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = ForestGreen),
                 enabled = title.isNotBlank() && chordProText.isNotBlank()
             ) {
-                Text("Speichern")
+                Text(stringResource(R.string.action_save))
             }
         }
     }

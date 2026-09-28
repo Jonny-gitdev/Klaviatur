@@ -11,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.Epoch
 import de.klaviatur.data.repository.IndexingStatus
 import de.klaviatur.ui.screens.chords.ChordViewModel
@@ -23,18 +25,20 @@ import de.klaviatur.util.AppSettings
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onStartTutorial: () -> Unit = {},
     viewModel: ChordViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val indexingStatus by viewModel.indexingStatus.collectAsState()
+
     Scaffold(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
-                title = { Text("Einstellungen") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
@@ -50,8 +54,13 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Language Selection
-            SettingsCard("Sprache") {
+            SettingsCard(stringResource(R.string.language_setting)) {
                 AppSettings.languages.forEach { lang ->
+                    val displayLabel = if (lang == "System") {
+                        stringResource(R.string.system_language)
+                    } else {
+                        lang
+                    }
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -63,15 +72,15 @@ fun SettingsScreen(
                             onClick = { AppSettings.language = lang },
                             colors = RadioButtonDefaults.colors(selectedColor = ForestGreen)
                         )
-                        Text(lang, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
+                        Text(displayLabel, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
 
             // Epoch Management
-            SettingsCard("Aktive Epochen") {
+            SettingsCard(stringResource(R.string.active_epochs)) {
                 Text(
-                    "Wähle aus, welche Epochen in der Auswahl erscheinen sollen.",
+                    stringResource(R.string.active_epochs_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -94,9 +103,9 @@ fun SettingsScreen(
             }
 
             // Chord Sheet Management
-            SettingsCard("Chord Sheets") {
+            SettingsCard(stringResource(R.string.chord_sheets_setting)) {
                 Text(
-                    "OLGA Index neu aufbauen, falls Dateien hinzugefügt wurden.",
+                    stringResource(R.string.reindex_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -112,10 +121,27 @@ fun SettingsScreen(
                     enabled = AppSettings.olgaFolderUri != null && indexingStatus is IndexingStatus.Idle
                 ) {
                     val text = when (indexingStatus) {
-                        is IndexingStatus.Indexing -> "Indiziere..."
-                        else -> "OLGA Index aktualisieren"
+                        is IndexingStatus.Indexing -> stringResource(R.string.indexing_button)
+                        else -> stringResource(R.string.reindex_button)
                     }
                     Text(text)
+                }
+            }
+
+            // Tutorial Section
+            SettingsCard(stringResource(R.string.tutorial_setting)) {
+                Text(
+                    stringResource(R.string.tutorial_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Button(
+                    onClick = onStartTutorial,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = ForestGreen)
+                ) {
+                    Text(stringResource(R.string.start_tutorial_btn))
                 }
             }
         }

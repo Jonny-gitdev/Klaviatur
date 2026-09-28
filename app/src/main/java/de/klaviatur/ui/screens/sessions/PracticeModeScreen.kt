@@ -15,11 +15,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.PieceSection
+import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.screens.repertoire.RepertoireViewModel
 import de.klaviatur.ui.screens.repertoire.SectionEditDialog
 import de.klaviatur.ui.theme.ForestGreen
@@ -41,7 +44,7 @@ fun PracticeModeScreen(
     val currentBars by viewModel.currentBars.collectAsState()
     val allPieces by viewModel.allPieces.collectAsState()
     val selectedSections by viewModel.selectedSections.collectAsState()
-    
+
     val metronomeBpm by metronomeManager.bpm.collectAsState()
     val metronomeIsPlaying by metronomeManager.isPlaying.collectAsState()
 
@@ -83,17 +86,17 @@ fun PracticeModeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.Close, "Beenden", tint = PaperWhite)
+                    Icon(Icons.Default.Close, stringResource(R.string.action_close), tint = PaperWhite)
                 }
                 Text(
-                    text = "ÜBUNGSSESSION",
+                    text = stringResource(R.string.practice_session_running),
                     style = MaterialTheme.typography.labelLarge,
                     color = PaperWhite.copy(alpha = 0.7f)
                 )
                 IconButton(onClick = { showMetronomeSettings = !showMetronomeSettings }) {
                     Icon(
-                        if (metronomeIsPlaying) Icons.Default.MusicNote else Icons.Default.MusicNote, 
-                        "Metronom", 
+                        if (metronomeIsPlaying) Icons.Default.MusicNote else Icons.Default.MusicNote,
+                        stringResource(R.string.metronome),
                         tint = if (metronomeIsPlaying) Color.Yellow else PaperWhite
                     )
                 }
@@ -116,13 +119,13 @@ fun PracticeModeScreen(
                     ) {
                         Icon(
                             if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                            contentDescription = if (isPaused) "Fortsetzen" else "Pause",
+                            contentDescription = if (isPaused) stringResource(R.string.action_resume) else stringResource(R.string.action_pause),
                             modifier = Modifier.size(32.dp)
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Piece and Bars Info
                 Card(
                     onClick = { showPiecePicker = true },
@@ -134,13 +137,13 @@ fun PracticeModeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = currentPiece?.title ?: "Tippe zum Auswählen",
+                            text = currentPiece?.title ?: stringResource(R.string.what_are_you_practicing),
                             style = MaterialTheme.typography.titleLarge,
                             color = PaperWhite
                         )
                         if (currentBars.isNotEmpty()) {
                             Text(
-                                text = "Takte: $currentBars",
+                                text = "${stringResource(R.string.bars_example)}: $currentBars",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = PaperWhite.copy(alpha = 0.8f)
                             )
@@ -150,7 +153,7 @@ fun PracticeModeScreen(
                             TextButton(onClick = { showSectionEditor = true }) {
                                 Icon(Icons.Default.List, null, tint = PaperWhite, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("Abschnitte verwalten", color = PaperWhite)
+                                Text(stringResource(R.string.manage_sections), color = PaperWhite)
                             }
                         }
                     }
@@ -160,7 +163,7 @@ fun PracticeModeScreen(
                 if (practicedPieces.size > 1 || (practicedPieces.size == 1 && currentPiece == null)) {
                     Spacer(modifier = Modifier.height(32.dp))
                     Text(
-                        "In dieser Session geübt:",
+                        stringResource(R.string.practiced_in_this_session),
                         style = MaterialTheme.typography.labelMedium,
                         color = PaperWhite.copy(alpha = 0.6f)
                     )
@@ -184,7 +187,7 @@ fun PracticeModeScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = ForestGreen),
                     modifier = Modifier.height(56.dp).fillMaxWidth(0.7f)
                 ) {
-                    Text("Session beenden", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.end_session), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -193,17 +196,17 @@ fun PracticeModeScreen(
         if (showPiecePicker) {
             AlertDialog(
                 onDismissRequest = { showPiecePicker = false },
-                title = { Text("Was übst du gerade?") },
+                title = { Text(stringResource(R.string.what_are_you_practicing)) },
                 text = {
                     Column {
                         OutlinedTextField(
                             value = currentBars,
                             onValueChange = { viewModel.updateCurrentBars(it) },
-                            label = { Text("Takte (z.B. 1-8)") },
+                            label = { Text(stringResource(R.string.bars_example)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Stück auswählen:", style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.select_piece), style = MaterialTheme.typography.titleSmall)
                         Box(modifier = Modifier.height(300.dp)) {
                             LazyColumn {
                                 items(allPieces) { piece ->
@@ -225,7 +228,7 @@ fun PracticeModeScreen(
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showPiecePicker = false }) { Text("Fertig") }
+                    TextButton(onClick = { showPiecePicker = false }) { Text(stringResource(R.string.state_safe)) }
                 }
             )
         }
@@ -233,10 +236,10 @@ fun PracticeModeScreen(
         if (showSectionEditor && currentPiece != null) {
             AlertDialog(
                 onDismissRequest = { showSectionEditor = false },
-                title = { 
+                title = {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Abschnitte")
-                        IconButton(onClick = { 
+                        Text(stringResource(R.string.sections_header))
+                        IconButton(onClick = {
                             editingSection = null
                             editingSectionIdx = -1
                             showEditDialog = true
@@ -250,11 +253,11 @@ fun PracticeModeScreen(
                                 val isSelected = selectedSections.contains(index)
                                 ListItem(
                                     headlineContent = { Text(section.name.ifBlank { "Takt ${section.startBar}-${section.endBar}" }) },
-                                    supportingContent = { 
+                                    supportingContent = {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Box(Modifier.size(8.dp).background(Color(section.level.color), RoundedCornerShape(4.dp)))
                                             Spacer(Modifier.width(8.dp))
-                                            Text(section.level.label)
+                                            Text(section.level.localizedLabel())
                                         }
                                     },
                                     leadingContent = {
@@ -279,7 +282,7 @@ fun PracticeModeScreen(
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showSectionEditor = false }) { Text("Schließen") }
+                    TextButton(onClick = { showSectionEditor = false }) { Text(stringResource(R.string.action_close)) }
                 }
             )
         }
@@ -294,7 +297,7 @@ fun PracticeModeScreen(
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Metronom", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.metronome), style = MaterialTheme.typography.titleMedium)
                     Text("$metronomeBpm BPM", style = MaterialTheme.typography.headlineSmall)
                     Slider(
                         value = metronomeBpm.toFloat(),
@@ -311,7 +314,7 @@ fun PracticeModeScreen(
                             containerColor = if (metronomeIsPlaying) Color.Red else ForestGreen
                         )
                     ) {
-                        Text(if (metronomeIsPlaying) "Stop" else "Start")
+                        Text(if (metronomeIsPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_start))
                     }
                 }
             }

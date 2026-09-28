@@ -50,38 +50,32 @@ fun ChordSheetRenderer(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChordLineView(line: ChordLine) {
-    val hasChords = line.segments.any { it.chord != null }
+    val hasChords = line.segments.any { !it.chord.isNullOrBlank() }
     
     if (hasChords) {
-        Column {
-            // Chords row
-            Row {
-                line.segments.forEach { segment ->
-                    if (segment.chord != null) {
-                        Text(
-                            text = segment.chord,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = Color(0xFF2D5A27),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                        )
-                    }
-                    // Add space proportional to the text length to align the next chord
-                    val textSpace = segment.text
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            line.segments.forEach { segment ->
+                Column {
                     Text(
-                        text = " ".repeat(textSpace.length.coerceAtLeast(1)),
-                        fontSize = 13.sp
+                        text = segment.chord ?: "",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color(0xFF2D5A27),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    )
+                    Text(
+                        text = segment.text.ifEmpty { " " },
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }
-            // Lyrics row
-            Text(
-                text = line.segments.joinToString("") { it.text },
-                style = MaterialTheme.typography.bodyLarge
-            )
         }
     } else {
         // Just lyrics

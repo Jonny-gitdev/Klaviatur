@@ -13,7 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import de.klaviatur.R
 import de.klaviatur.data.repository.ChordSong
 import de.klaviatur.ui.components.ChordSheetRenderer
 import de.klaviatur.ui.theme.ForestGreen
@@ -36,11 +38,11 @@ fun ChordSheetDetailScreen(
     var songData by remember { mutableStateOf<Pair<ChordSong, String>?>(null) }
     var parsedSheet by remember { mutableStateOf<ChordSheet?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    
+
     var isAutoScrolling by remember { mutableStateOf(false) }
     var scrollSpeed by remember { mutableFloatStateOf(1f) }
     val scrollState = rememberScrollState()
-    
+
     val favoriteIds by viewModel.favoriteIds.collectAsState()
     val isFav = songData?.let { (song, _) -> favoriteIds.contains(song.identifier) } ?: false
 
@@ -62,17 +64,17 @@ fun ChordSheetDetailScreen(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     songData?.let { (song, _) ->
                         Column {
                             Text(song.title, style = MaterialTheme.typography.titleMedium)
                             Text(song.artist, style = MaterialTheme.typography.bodySmall)
                         }
-                    } ?: Text("Loading...")
+                    } ?: Text("...")
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
                 actions = {
@@ -80,7 +82,7 @@ fun ChordSheetDetailScreen(
                         IconButton(onClick = { viewModel.toggleFavorite(song.identifier) }) {
                             Icon(
                                 if (isFav) Icons.Default.Star else Icons.Outlined.StarBorder,
-                                contentDescription = "Favorit",
+                                contentDescription = stringResource(R.string.filter_favorites),
                                 tint = if (isFav) ForestGreen else LocalContentColor.current
                             )
                         }
@@ -98,7 +100,7 @@ fun ChordSheetDetailScreen(
                 ) {
                     Icon(
                         imageVector = if (isAutoScrolling) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isAutoScrolling) "Pause" else "Play"
+                        contentDescription = if (isAutoScrolling) stringResource(R.string.action_pause) else stringResource(R.string.action_start)
                     )
                 }
             }
@@ -116,7 +118,7 @@ fun ChordSheetDetailScreen(
                             .navigationBarsPadding()
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Geschwindigkeit", style = MaterialTheme.typography.labelMedium, color = TextMuted)
+                            Text("Tempo", style = MaterialTheme.typography.labelMedium, color = TextMuted)
                             Spacer(Modifier.width(16.dp))
                             Slider(
                                 value = scrollSpeed,
@@ -147,7 +149,7 @@ fun ChordSheetDetailScreen(
                     modifier = Modifier.fillMaxSize().padding(padding)
                 )
             } ?: Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("Song not found or could not be loaded")
+                Text(stringResource(R.string.no_pieces_title))
             }
         }
     }

@@ -15,11 +15,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.*
+import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
 import de.klaviatur.util.AppSettings
 
@@ -34,43 +37,43 @@ fun AddEditPieceScreen(
     val existing = remember(pieceId, allPieces) { pieceId?.let { id -> allPieces.find { it.id == id } } }
 
     // Form state
-    var title       by remember(existing) { mutableStateOf(existing?.title ?: "") }
-    var composer    by remember(existing) { mutableStateOf(existing?.composer ?: "") }
-    var epoch       by remember(existing) { mutableStateOf(existing?.epoch) }
+    var title by remember(existing) { mutableStateOf(existing?.title ?: "") }
+    var composer by remember(existing) { mutableStateOf(existing?.composer ?: "") }
+    var epoch by remember(existing) { mutableStateOf(existing?.epoch) }
     var keySignature by remember(existing) { mutableStateOf(existing?.keySignature ?: "") }
-    var totalBars   by remember(existing) { mutableStateOf(existing?.totalBars?.takeIf { it > 0 }?.toString() ?: "") }
+    var totalBars by remember(existing) { mutableStateOf(existing?.totalBars?.takeIf { it > 0 }?.toString() ?: "") }
     var initialProgress by remember { mutableStateOf(ProgressLevel.NOT_LEARNED) }
-    var tags        by remember(existing) { mutableStateOf(existing?.tags ?: emptyList<String>()) }
-    var tagInput    by remember { mutableStateOf("") }
-    var targetBpm   by remember(existing) { mutableStateOf(existing?.targetBpm?.takeIf { it > 0 }?.toString() ?: "") }
-    var status      by remember(existing) { mutableStateOf(existing?.status ?: PieceStatus.NEW) }
-    var difficulty  by remember(existing) { mutableStateOf(existing?.difficulty ?: 1) }
-    var notes       by remember(existing) { mutableStateOf(existing?.notes ?: "") }
+    var tags by remember(existing) { mutableStateOf(existing?.tags ?: emptyList<String>()) }
+    var tagInput by remember { mutableStateOf("") }
+    var targetBpm by remember(existing) { mutableStateOf(existing?.targetBpm?.takeIf { it > 0 }?.toString() ?: "") }
+    var status by remember(existing) { mutableStateOf(existing?.status ?: PieceStatus.NEW) }
+    var difficulty by remember(existing) { mutableStateOf(existing?.difficulty ?: 1) }
+    var notes by remember(existing) { mutableStateOf(existing?.notes ?: "") }
 
     // OpenOpus
-    var ooQuery     by remember { mutableStateOf("") }
-    val ooResults   by viewModel.ooResults.collectAsState()
-    val ooLoading   by viewModel.ooLoading.collectAsState()
+    var ooQuery by remember { mutableStateOf("") }
+    val ooResults by viewModel.ooResults.collectAsState()
+    val ooLoading by viewModel.ooLoading.collectAsState()
     var showOoResults by remember { mutableStateOf(false) }
 
-    var titleError  by remember { mutableStateOf(false) }
-    var compError   by remember { mutableStateOf(false) }
+    var titleError by remember { mutableStateOf(false) }
+    var compError by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Stück löschen?") },
-            text  = { Text("Diese Aktion kann nicht rückgängig gemacht werden.") },
+            title = { Text(stringResource(R.string.delete_piece_title)) },
+            text = { Text(stringResource(R.string.delete_piece_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     existing?.let { viewModel.deletePiece(it) }
                     showDeleteDialog = false
                     onBack()
-                }) { Text("Löschen", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Abbrechen") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -79,29 +82,29 @@ fun AddEditPieceScreen(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
-                title = { Text(if (pieceId == null) "Neues Stück" else "Stück bearbeiten") },
+                title = { Text(if (pieceId == null) stringResource(R.string.new_piece) else stringResource(R.string.edit_piece)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zurück")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (pieceId != null) {
                         TextButton(onClick = { showDeleteDialog = true }) {
-                            Text("Löschen", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                         }
                     }
                     TextButton(onClick = {
                         titleError = title.isBlank()
-                        compError  = composer.isBlank()
+                        compError = composer.isBlank()
                         if (titleError || compError) return@TextButton
                         val bars = totalBars.toIntOrNull() ?: 0
                         val newSections = if (existing == null && bars > 0) {
                             listOf(
                                 PieceSection(
                                     startBar = 1,
-                                    endBar   = bars,
-                                    level    = initialProgress
+                                    endBar = bars,
+                                    level = initialProgress
                                 )
                             )
                         } else {
@@ -115,21 +118,21 @@ fun AddEditPieceScreen(
                         }
 
                         val piece = (existing ?: Piece(title = "", composer = "")).copy(
-                            title        = title.trim(),
-                            composer     = composer.trim(),
-                            epoch        = epoch,
+                            title = title.trim(),
+                            composer = composer.trim(),
+                            epoch = epoch,
                             keySignature = keySignature.trim(),
-                            totalBars    = bars,
-                            sections     = newSections,
-                            tags         = tags,
-                            targetBpm    = targetBpm.toIntOrNull() ?: 0,
-                            status       = newStatus,
-                            difficulty   = difficulty,
-                            notes        = notes.trim()
+                            totalBars = bars,
+                            sections = newSections,
+                            tags = tags,
+                            targetBpm = targetBpm.toIntOrNull() ?: 0,
+                            status = newStatus,
+                            difficulty = difficulty,
+                            notes = notes.trim()
                         )
                         viewModel.upsertPiece(piece)
                         onBack()
-                    }) { Text("Speichern", color = ForestGreen) }
+                    }) { Text(stringResource(R.string.action_save), color = ForestGreen) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
             )
@@ -144,7 +147,7 @@ fun AddEditPieceScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ── OpenOpus search ───────────────────────────────────────────────
-            FormCard("OpenOpus Suche") {
+            FormCard(stringResource(R.string.openopus_search)) {
                 OutlinedTextField(
                     value = ooQuery,
                     onValueChange = {
@@ -152,13 +155,13 @@ fun AddEditPieceScreen(
                         showOoResults = it.length >= 2
                         viewModel.searchOpenOpus(it)
                     },
-                    placeholder = { Text("Komponist oder Werktitel…") },
-                    singleLine  = true,
-                    modifier    = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.openopus_placeholder)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
                         if (ooQuery.isNotEmpty()) {
                             IconButton(onClick = { ooQuery = ""; viewModel.clearOoResults(); showOoResults = false }) {
-                                Icon(Icons.Default.Close, "Löschen")
+                                Icon(Icons.Default.Close, stringResource(R.string.action_delete))
                             }
                         }
                     },
@@ -176,19 +179,21 @@ fun AddEditPieceScreen(
                     ooResults.forEach { result ->
                         Surface(
                             onClick = {
-                                title    = result.title + (result.subtitle?.let { " – $it" } ?: "")
+                                title = result.title + (result.subtitle?.let { " – $it" } ?: "")
                                 composer = result.composer
-                                ooQuery  = ""
+                                ooQuery = ""
                                 showOoResults = false
                                 viewModel.clearOoResults()
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            color    = PaperBeige,
-                            shape    = RoundedCornerShape(8.dp)
+                            color = PaperBeige,
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                Text(result.title + (result.subtitle?.let { " – $it" } ?: ""),
-                                    style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    result.title + (result.subtitle?.let { " – $it" } ?: ""),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                                 Text(result.composer, style = MaterialTheme.typography.bodySmall)
                             }
                         }
@@ -198,8 +203,8 @@ fun AddEditPieceScreen(
             }
 
             // ── Basic info ────────────────────────────────────────────────────
-            FormCard("Stück") {
-                FormField("Titel *") {
+            FormCard(stringResource(R.string.pieces_stat)) {
+                FormField(stringResource(R.string.field_title)) {
                     OutlinedTextField(
                         value = title, onValueChange = { title = it; titleError = false },
                         isError = titleError, singleLine = true, modifier = Modifier.fillMaxWidth(),
@@ -208,7 +213,7 @@ fun AddEditPieceScreen(
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FormField("Komponist *", Modifier.weight(1f)) {
+                    FormField(stringResource(R.string.field_composer), Modifier.weight(1f)) {
                         OutlinedTextField(
                             value = composer, onValueChange = { composer = it; compError = false },
                             isError = compError, singleLine = true, modifier = Modifier.fillMaxWidth(),
@@ -218,19 +223,19 @@ fun AddEditPieceScreen(
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FormField("Tonart", Modifier.weight(1f)) {
+                    FormField(stringResource(R.string.field_key), Modifier.weight(1f)) {
                         OutlinedTextField(
                             value = keySignature, onValueChange = { keySignature = it },
-                            placeholder = { Text("z.B. cis-Moll") },
+                            placeholder = { Text(stringResource(R.string.field_key_placeholder)) },
                             singleLine = true, modifier = Modifier.fillMaxWidth(),
                             colors = outlinedTextFieldColors()
                         )
                     }
-                    FormField("Epoche", Modifier.weight(1f)) {
+                    FormField(stringResource(R.string.field_epoch), Modifier.weight(1f)) {
                         var expanded by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                             OutlinedTextField(
-                                value = epoch?.label ?: "– wählen –",
+                                value = epoch?.localizedLabel() ?: stringResource(R.string.select_epoch),
                                 onValueChange = {},
                                 readOnly = true,
                                 modifier = Modifier.fillMaxWidth().menuAnchor(),
@@ -238,9 +243,9 @@ fun AddEditPieceScreen(
                                 colors = outlinedTextFieldColors()
                             )
                             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                DropdownMenuItem(text = { Text("– keine –") }, onClick = { epoch = null; expanded = false })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.no_epoch)) }, onClick = { epoch = null; expanded = false })
                                 AppSettings.activeEpochs.forEach { e ->
-                                    DropdownMenuItem(text = { Text(e.label) }, onClick = { epoch = e; expanded = false })
+                                    DropdownMenuItem(text = { Text(e.localizedLabel()) }, onClick = { epoch = e; expanded = false })
                                 }
                             }
                         }
@@ -249,25 +254,25 @@ fun AddEditPieceScreen(
             }
 
             // ── Status & difficulty ───────────────────────────────────────────
-            FormCard("Status & Schwierigkeit") {
-                FormField("Status") {
+            FormCard("${stringResource(R.string.field_status)} & ${stringResource(R.string.field_difficulty)}") {
+                FormField(stringResource(R.string.field_status)) {
                     var expanded by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
-                            value = status.label, onValueChange = {}, readOnly = true,
+                            value = status.localizedLabel(), onValueChange = {}, readOnly = true,
                             modifier = Modifier.fillMaxWidth().menuAnchor(),
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                             colors = outlinedTextFieldColors()
                         )
                         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                             PieceStatus.entries.forEach { s ->
-                                DropdownMenuItem(text = { Text(s.label) }, onClick = { status = s; expanded = false })
+                                DropdownMenuItem(text = { Text(s.localizedLabel()) }, onClick = { status = s; expanded = false })
                             }
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                FormField("Schwierigkeit") {
+                FormField(stringResource(R.string.field_difficulty)) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             (1..4).forEach { i ->
@@ -282,40 +287,40 @@ fun AddEditPieceScreen(
             }
 
             // ── Progress ──────────────────────────────────────────────────────
-            FormCard("Taktfortschritt") {
+            FormCard(stringResource(R.string.progress_header)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {
-                    FormField("Gesamtanzahl Takte", Modifier.weight(1f)) {
+                    FormField(stringResource(R.string.field_total_bars), Modifier.weight(1f)) {
                         OutlinedTextField(
                             value = totalBars, onValueChange = { totalBars = it },
-                            placeholder = { Text("z.B. 64") },
+                            placeholder = { Text(stringResource(R.string.field_total_bars_placeholder)) },
                             singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(), colors = outlinedTextFieldColors()
                         )
                     }
                     if (existing == null) {
-                        FormField("Start-Zustand", Modifier.weight(1f)) {
+                        FormField(stringResource(R.string.field_start_state), Modifier.weight(1f)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 FilterChip(
                                     selected = initialProgress == ProgressLevel.NOT_LEARNED,
-                                    onClick  = { initialProgress = ProgressLevel.NOT_LEARNED },
-                                    label    = { Text("Noch nicht gelernt") },
-                                    colors   = FilterChipDefaults.filterChipColors(selectedContainerColor = ProgressLevel.NOT_LEARNED.color.let { Color(it) }, selectedLabelColor = Color.White)
+                                    onClick = { initialProgress = ProgressLevel.NOT_LEARNED },
+                                    label = { Text(stringResource(R.string.state_not_learned)) },
+                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ProgressLevel.NOT_LEARNED.color.let { Color(it) }, selectedLabelColor = Color.White)
                                 )
                                 FilterChip(
                                     selected = initialProgress == ProgressLevel.SAFE,
-                                    onClick  = { initialProgress = ProgressLevel.SAFE },
-                                    label    = { Text("Fertig") },
-                                    colors   = FilterChipDefaults.filterChipColors(selectedContainerColor = ProgressLevel.SAFE.color.let { Color(it) }, selectedLabelColor = Color.White)
+                                    onClick = { initialProgress = ProgressLevel.SAFE },
+                                    label = { Text(stringResource(R.string.state_safe)) },
+                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ProgressLevel.SAFE.color.let { Color(it) }, selectedLabelColor = Color.White)
                                 )
                             }
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                FormField("Ziel-BPM") {
+                FormField(stringResource(R.string.field_target_bpm)) {
                     OutlinedTextField(
                         value = targetBpm, onValueChange = { targetBpm = it },
-                        placeholder = { Text("z.B. 92") },
+                        placeholder = { Text(stringResource(R.string.field_target_bpm_placeholder)) },
                         singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(), colors = outlinedTextFieldColors()
                     )
@@ -323,11 +328,11 @@ fun AddEditPieceScreen(
             }
 
             // ── Tags ────────────────────────────────────────────────────────────
-            FormCard("Tags") {
+            FormCard(stringResource(R.string.field_tags)) {
                 OutlinedTextField(
                     value = tagInput,
                     onValueChange = { tagInput = it },
-                    placeholder = { Text("Neuer Tag…") },
+                    placeholder = { Text(stringResource(R.string.field_tag_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
@@ -338,7 +343,7 @@ fun AddEditPieceScreen(
                                     tagInput = ""
                                 }
                             }) {
-                                Icon(Icons.Default.Add, "Hinzufügen")
+                                Icon(Icons.Default.Add, stringResource(R.string.add_piece))
                             }
                         }
                     },
@@ -370,10 +375,10 @@ fun AddEditPieceScreen(
             }
 
             // ── Notes ─────────────────────────────────────────────────────────
-            FormCard("Notizen") {
+            FormCard(stringResource(R.string.field_notes)) {
                 OutlinedTextField(
                     value = notes, onValueChange = { notes = it },
-                    placeholder = { Text("Interpretationshinweise, Schwierigkeiten, Tipps…") },
+                    placeholder = { Text(stringResource(R.string.field_notes_placeholder)) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
                     minLines = 3, colors = outlinedTextFieldColors()
                 )
@@ -388,11 +393,11 @@ fun AddEditPieceScreen(
 private fun DifficultyChip(level: Int, current: Int, onClick: (Int) -> Unit) {
     FilterChip(
         selected = current == level,
-        onClick  = { onClick(level) },
-        label    = { Text("★".repeat(level)) },
-        colors   = FilterChipDefaults.filterChipColors(
+        onClick = { onClick(level) },
+        label = { Text("★".repeat(level)) },
+        colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = AmberBg,
-            selectedLabelColor     = AmberText
+            selectedLabelColor = AmberText
         )
     )
 }
@@ -425,10 +430,10 @@ private fun FormField(label: String, modifier: Modifier = Modifier, content: @Co
 
 @Composable
 private fun outlinedTextFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor   = ForestGreen,
+    focusedBorderColor = ForestGreen,
     unfocusedBorderColor = BorderColor,
-    focusedLabelColor    = ForestGreen,
-    cursorColor          = ForestGreen,
-    focusedContainerColor   = PaperWhite,
+    focusedLabelColor = ForestGreen,
+    cursorColor = ForestGreen,
+    focusedContainerColor = PaperWhite,
     unfocusedContainerColor = PaperWhite
 )

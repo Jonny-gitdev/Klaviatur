@@ -21,11 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.Piece
 import de.klaviatur.data.model.PieceSection
 import de.klaviatur.data.model.ProgressLevel
@@ -33,6 +35,7 @@ import de.klaviatur.data.model.TempoEntry
 import de.klaviatur.ui.components.BarProgress
 import de.klaviatur.ui.components.DifficultyDots
 import de.klaviatur.ui.components.StatusBadge
+import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -51,18 +54,18 @@ fun PieceDetailScreen(
     val piece = allPieces.find { it.id == pieceId }
 
     var showTempoDialog by remember { mutableStateOf(false) }
-    var tempoBpm        by remember { mutableStateOf("") }
-    var tempoNote       by remember { mutableStateOf("") }
+    var tempoBpm by remember { mutableStateOf("") }
+    var tempoNote by remember { mutableStateOf("") }
 
     var showSectionDialog by remember { mutableStateOf(false) }
-    var editingSection    by remember { mutableStateOf<PieceSection?>(null) }
+    var editingSection by remember { mutableStateOf<PieceSection?>(null) }
     var editingSectionIdx by remember { mutableStateOf(-1) }
 
     var showAutoSplitDialog by remember { mutableStateOf(false) }
-    var barsPerSection      by remember { mutableStateOf("8") }
+    var barsPerSection by remember { mutableStateOf("8") }
 
     var isPracticing by remember { mutableStateOf(false) }
-    var startTime    by remember { mutableLongStateOf(0L) }
+    var startTime by remember { mutableLongStateOf(0L) }
     var practiceSeconds by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(isPracticing) {
@@ -78,11 +81,11 @@ fun PieceDetailScreen(
     if (showAutoSplitDialog) {
         AlertDialog(
             onDismissRequest = { showAutoSplitDialog = false },
-            title = { Text("Automatisch unterteilen") },
+            title = { Text(stringResource(R.string.auto_split_title)) },
             text = {
                 OutlinedTextField(
                     value = barsPerSection, onValueChange = { barsPerSection = it },
-                    label = { Text("Takte pro Abschnitt") },
+                    label = { Text(stringResource(R.string.bars_per_section)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -94,27 +97,27 @@ fun PieceDetailScreen(
                         viewModel.autoSplitSections(piece, bars)
                         showAutoSplitDialog = false
                     }
-                }) { Text("Unterteilen", color = ForestGreen) }
+                }) { Text(stringResource(R.string.split_button), color = ForestGreen) }
             },
-            dismissButton = { TextButton(onClick = { showAutoSplitDialog = false }) { Text("Abbrechen") } }
+            dismissButton = { TextButton(onClick = { showAutoSplitDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
 
     if (showTempoDialog) {
         AlertDialog(
             onDismissRequest = { showTempoDialog = false },
-            title = { Text("Tempo eintragen") },
+            title = { Text(stringResource(R.string.add_tempo_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = tempoBpm, onValueChange = { tempoBpm = it },
-                        label = { Text("BPM") },
+                        label = { Text(stringResource(R.string.bpm)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = tempoNote, onValueChange = { tempoNote = it },
-                        label = { Text("Notiz (optional)") },
+                        label = { Text(stringResource(R.string.note_optional)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -127,15 +130,15 @@ fun PieceDetailScreen(
                         showTempoDialog = false
                         tempoBpm = ""; tempoNote = ""
                     }
-                }) { Text("Speichern", color = ForestGreen) }
+                }) { Text(stringResource(R.string.action_save), color = ForestGreen) }
             },
-            dismissButton = { TextButton(onClick = { showTempoDialog = false }) { Text("Abbrechen") } }
+            dismissButton = { TextButton(onClick = { showTempoDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
 
     if (piece != null && showSectionDialog) {
         SectionEditDialog(
-            section   = editingSection,
+            section = editingSection,
             totalBars = piece.totalBars,
             onDismiss = { showSectionDialog = false; editingSection = null; editingSectionIdx = -1 },
             onConfirm = { newSection ->
@@ -158,15 +161,15 @@ fun PieceDetailScreen(
         return
     }
 
-    val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY)
+    val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     Scaffold(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zurück") } },
-                actions = { IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "Bearbeiten", tint = ForestGreen) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
+                actions = { IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, stringResource(R.string.action_edit), tint = ForestGreen) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
             )
         }
@@ -182,17 +185,19 @@ fun PieceDetailScreen(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                             Column(Modifier.weight(1f)) {
                                 Text(piece.title, style = MaterialTheme.typography.headlineMedium)
-                                Text(piece.composer, style = MaterialTheme.typography.bodyMedium.copy(color = TextMuted),
-                                    modifier = Modifier.padding(top = 2.dp))
+                                Text(
+                                    piece.composer, style = MaterialTheme.typography.bodyMedium.copy(color = TextMuted),
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
                             }
                             StatusBadge(piece.status)
                         }
-                        
+
                         Spacer(Modifier.height(16.dp))
                         PracticeTimer(
                             isPracticing = isPracticing,
                             seconds = practiceSeconds,
-                            onStart = { 
+                            onStart = {
                                 isPracticing = true
                                 practiceSeconds = 0
                             },
@@ -208,12 +213,12 @@ fun PieceDetailScreen(
                                 onStartPractice(piece)
                             }
                         )
-                        
+
                         Spacer(Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             DifficultyDots(piece.difficulty)
                             if (piece.epoch != null) {
-                                Text("· ${piece.epoch.label}", style = MaterialTheme.typography.bodySmall)
+                                Text("· ${piece.epoch.localizedLabel()}", style = MaterialTheme.typography.bodySmall)
                             }
                             if (piece.keySignature.isNotBlank()) {
                                 Text("· ${piece.keySignature}", style = MaterialTheme.typography.bodySmall)
@@ -222,11 +227,11 @@ fun PieceDetailScreen(
                         if (piece.lastPracticedAt != null) {
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                "Zuletzt geübt: ${sdf.format(Date(piece.lastPracticedAt))}",
+                                stringResource(R.string.last_practiced, sdf.format(Date(piece.lastPracticedAt))),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (System.currentTimeMillis() - piece.lastPracticedAt > 30 * 24 * 60 * 60 * 1000L)
-                                    MaterialTheme.colorScheme.error 
-                                else 
+                                    MaterialTheme.colorScheme.error
+                                else
                                     TextMuted
                             )
                         }
@@ -239,7 +244,7 @@ fun PieceDetailScreen(
                 item {
                     Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("FORTSCHRITT", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 10.dp))
+                            Text(stringResource(R.string.progress_header), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 10.dp))
                             BarProgress(piece.sections, piece.totalBars, Modifier.fillMaxWidth())
                             if (piece.targetBpm > 0) {
                                 Spacer(Modifier.height(10.dp))
@@ -253,19 +258,19 @@ fun PieceDetailScreen(
                     Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                         Column(Modifier.padding(16.dp)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("ABSCHNITTE", style = MaterialTheme.typography.labelSmall)
+                                Text(stringResource(R.string.sections_header), style = MaterialTheme.typography.labelSmall)
                                 Row {
                                     TextButton(onClick = { showAutoSplitDialog = true }, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                                        Text("Auto-Split", fontSize = 12.sp, color = Amber)
+                                        Text(stringResource(R.string.auto_split), fontSize = 12.sp, color = Amber)
                                     }
                                     TextButton(onClick = { showSectionDialog = true }, contentPadding = PaddingValues(horizontal = 8.dp)) {
-                                        Text("+ Abschnitt", fontSize = 12.sp, color = ForestGreen)
+                                        Text(stringResource(R.string.add_section), fontSize = 12.sp, color = ForestGreen)
                                     }
                                 }
                             }
                             Spacer(Modifier.height(8.dp))
                             if (piece.sections.isEmpty()) {
-                                Text("Noch keine Abschnitte definiert.", style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.no_sections_defined), style = MaterialTheme.typography.bodySmall)
                             } else {
                                 piece.sections.sortedBy { it.startBar }.forEachIndexed { idx, section ->
                                     Row(
@@ -303,7 +308,7 @@ fun PieceDetailScreen(
                                             currentSections.remove(section)
                                             viewModel.updateSections(piece, currentSections)
                                         }) {
-                                            Icon(Icons.Default.Delete, "Löschen", tint = TextHint, modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.Delete, stringResource(R.string.action_delete), tint = TextHint, modifier = Modifier.size(20.dp))
                                         }
                                     }
                                     if (idx < piece.sections.size - 1) {
@@ -321,14 +326,14 @@ fun PieceDetailScreen(
                 Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                     Column(Modifier.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("TEMPO-VERLAUF", style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.tempo_log_header), style = MaterialTheme.typography.labelSmall)
                             TextButton(onClick = { showTempoDialog = true }, contentPadding = PaddingValues(0.dp)) {
-                                Text("+ Eintrag", fontSize = 12.sp, color = ForestGreen)
+                                Text(stringResource(R.string.add_entry), fontSize = 12.sp, color = ForestGreen)
                             }
                         }
                         Spacer(Modifier.height(8.dp))
                         if (piece.tempoLog.isEmpty()) {
-                            Text("Noch keine Einträge.", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.no_tempo_entries), style = MaterialTheme.typography.bodySmall)
                         } else {
                             piece.tempoLog.asReversed().forEach { entry ->
                                 Row(
@@ -336,8 +341,11 @@ fun PieceDetailScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(sdf.format(Date(entry.dateMillis)), style = MaterialTheme.typography.bodySmall)
-                                    Text("${entry.bpm} BPM", style = MaterialTheme.typography.bodySmall.copy(
-                                        color = ForestGreen, fontWeight = FontWeight.W500))
+                                    Text(
+                                        "${entry.bpm} BPM", style = MaterialTheme.typography.bodySmall.copy(
+                                            color = ForestGreen, fontWeight = FontWeight.W500
+                                        )
+                                    )
                                     Text(entry.note, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f).padding(start = 12.dp))
                                 }
                                 HorizontalDivider(color = BorderColor, thickness = 0.5.dp)
@@ -352,7 +360,7 @@ fun PieceDetailScreen(
                 item {
                     Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                         Column(Modifier.padding(16.dp)) {
-                            Text("NOTIZEN", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 8.dp))
+                            Text(stringResource(R.string.field_notes), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 8.dp))
                             Text(piece.notes, style = MaterialTheme.typography.bodyMedium.copy(color = TextMuted))
                         }
                     }
@@ -389,7 +397,7 @@ fun PracticeTimer(
             ) {
                 Column {
                     Text(
-                        if (isPracticing) "Übung läuft..." else "Bereit zum Üben?",
+                        if (isPracticing) stringResource(R.string.practice_running) else stringResource(R.string.ready_to_practice),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isPracticing) ForestGreenText else TextMuted
                     )
@@ -413,7 +421,7 @@ fun PracticeTimer(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isPracticing) "Stopp" else "Start")
+                    Text(if (isPracticing) stringResource(R.string.action_stop) else stringResource(R.string.action_start))
                 }
             }
             if (!isPracticing) {
@@ -422,7 +430,7 @@ fun PracticeTimer(
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
-                    Text("In Fokus-Modus wechseln", fontSize = 12.sp, color = ForestGreen)
+                    Text(stringResource(R.string.switch_to_focus), fontSize = 12.sp, color = ForestGreen)
                 }
             }
         }
@@ -444,7 +452,7 @@ fun SectionEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (section == null) "Abschnitt hinzufügen" else "Abschnitt bearbeiten") },
+        title = { Text(if (section == null) stringResource(R.string.add_section) else stringResource(R.string.action_edit)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name (z.B. Thema A)") }, modifier = Modifier.fillMaxWidth())
@@ -477,11 +485,11 @@ fun SectionEditDialog(
                                 if (level == l) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                             Spacer(Modifier.height(4.dp))
-                            Text(l.label, style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, maxLines = 1)
+                            Text(l.localizedLabel(), style = MaterialTheme.typography.labelSmall, fontSize = 9.sp, maxLines = 1)
                         }
                     }
                 }
-                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notizen") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.field_notes)) }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             }
         },
         confirmButton = {
@@ -489,8 +497,8 @@ fun SectionEditDialog(
                 val start = startBar.toIntOrNull() ?: 1
                 val end = endBar.toIntOrNull() ?: totalBars
                 onConfirm(PieceSection(name, start, end, level, notes))
-            }) { Text("Speichern", color = ForestGreen) }
+            }) { Text(stringResource(R.string.action_save), color = ForestGreen) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }

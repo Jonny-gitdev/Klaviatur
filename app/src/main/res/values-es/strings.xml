@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Klaviatur</string>
+
+    <!-- Navigation -->
+    <string name="nav_repertoire">Repertorio</string>
+    <string name="nav_sessions">Práctica</string>
+    <string name="nav_lists">Listas</string>
+    <string name="nav_stats">Estadísticas</string>
+    <string name="nav_chords">Acordes</string>
+
+    <!-- General Actions & Common -->
+    <string name="action_back">Volver</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_close">Cerrar</string>
+    <string name="action_ok">Aceptar</string>
+    <string name="action_search">Buscar…</string>
+    <string name="action_create">Crear</string>
+    <string name="action_start">Iniciar</string>
+    <string name="action_stop">Detener</string>
+    <string name="action_pause">Pausa</string>
+    <string name="action_resume">Continuar</string>
+    <string name="settings">Ajustes</string>
+    <string name="metronome">Metrónomo</string>
+
+    <!-- Repertoire Screen -->
+    <string name="repertoire_title">Repertorio</string>
+    <string name="pieces_count">%d piezas</string>
+    <string name="piece_count_singular">%d pieza</string>
+    <string name="add_piece">Añadir pieza</string>
+    <string name="shuffle">Aleatorio</string>
+    <string name="refresh_time_title">¡Hora de repasar!</string>
+    <string name="refresh_time_subtitle">Hace tiempo que no practicas estas piezas:</string>
+    <string name="no_pieces_title">Aún no hay piezas</string>
+    <string name="no_pieces_subtitle">Pulsa + para añadir tu primera pieza</string>
+    <string name="section_in_progress">En progreso</string>
+    <string name="section_repertoire">Repertorio</string>
+    <string name="section_new">Nueva</string>
+    <string name="status_new">Nueva</string>
+    <string name="status_learning">Aprendiendo</string>
+    <string name="status_polishing">Perfeccionando</string>
+    <string name="status_repertoire">Repertorio</string>
+    <string name="epoch_renaissance">Renacimiento</string>
+    <string name="epoch_baroque">Barroco</string>
+    <string name="epoch_classical">Clasicismo</string>
+    <string name="epoch_romantic">Romanticismo</string>
+    <string name="epoch_modern">Moderna</string>
+    <string name="epoch_pop_jazz">Pop / Jazz</string>
+
+    <!-- Piece Detail & Add/Edit Piece -->
+    <string name="piece_detail_title">Detalles de la pieza</string>
+    <string name="new_piece">Nueva pieza</string>
+    <string name="edit_piece">Editar pieza</string>
+    <string name="delete_piece_title">¿Eliminar pieza?</string>
+    <string name="delete_piece_message">Esta acción no se puede deshacer.</string>
+    <string name="openopus_search">Búsqueda OpenOpus</string>
+    <string name="openopus_placeholder">Compositor o título…</string>
+    <string name="field_title">Título *</string>
+    <string name="field_composer">Compositor *</string>
+    <string name="field_key">Tonalidad</string>
+    <string name="field_key_placeholder">ej. Do sostenido menor</string>
+    <string name="field_epoch">Época</string>
+    <string name="select_epoch">– seleccionar –</string>
+    <string name="no_epoch">– ninguna –</string>
+    <string name="field_status">Estado</string>
+    <string name="field_difficulty">Dificultad</string>
+    <string name="field_total_bars">Compases totales</string>
+    <string name="field_total_bars_placeholder">ej. 64</string>
+    <string name="field_start_state">Estado inicial</string>
+    <string name="state_not_learned">Aún no aprendida</string>
+    <string name="state_safe">Dominada</string>
+    <string name="field_target_bpm">BPM objetivo</string>
+    <string name="field_target_bpm_placeholder">ej. 92</string>
+    <string name="field_tags">Etiquetas</string>
+    <string name="field_tag_placeholder">Nueva etiqueta…</string>
+    <string name="field_notes">Notas</string>
+    <string name="field_notes_placeholder">Notas de interpretación, dificultades, consejos…</string>
+    <string name="last_practiced">Última práctica: %s</string>
+    <string name="progress_header">PROGRESO</string>
+    <string name="sections_header">SECCIONES</string>
+    <string name="tempo_log_header">HISTORIAL DE TEMPO</string>
+    <string name="auto_split">Dividir auto</string>
+    <string name="add_section">+ Sección</string>
+    <string name="add_entry">+ Entrada</string>
+    <string name="auto_split_title">Dividir automáticamente</string>
+    <string name="bars_per_section">Compases por sección</string>
+    <string name="split_button">Dividir</string>
+    <string name="add_tempo_title">Registrar tempo</string>
+    <string name="bpm">BPM</string>
+    <string name="note_optional">Nota (opcional)</string>
+    <string name="no_sections_defined">Aún no hay secciones definidas.</string>
+    <string name="no_tempo_entries">Aún no hay entradas.</string>
+    <string name="ready_to_practice">¿Listo para practicar?</string>
+    <string name="practice_running">Práctica en curso…</string>
+    <string name="switch_to_focus">Modo Enfoque</string>
+
+    <!-- Practice Sessions -->
+    <string name="sessions_title">Sesiones de práctica</string>
+    <string name="sessions_count">%d entradas</string>
+    <string name="add_session">Añadir sesión</string>
+    <string name="new_session">Nueva sesión</string>
+    <string name="practice_now">Practicar ahora</string>
+    <string name="to_active_session">Ir a sesión activa</string>
+    <string name="streak_label">Racha de días</string>
+    <string name="total_label">Total</string>
+    <string name="sessions_label">Sesiones</string>
+    <string name="no_sessions_title">Sin sesiones</string>
+    <string name="no_sessions_subtitle">Pulsa + para registrar tu primera sesión</string>
+    <string name="delete_session_confirm">¿Eliminar sesión?</string>
+    <string name="date_and_duration">FECHA Y DURACIÓN</string>
+    <string name="date">Fecha</string>
+    <string name="minutes">Minutos</string>
+    <string name="practiced_pieces">PIEZAS PRACTICADAS</string>
+    <string name="practice_session_running">SESIÓN DE PRÁCTICA</string>
+    <string name="end_session">Finalizar sesión</string>
+    <string name="what_are_you_practicing">¿Qué estás practicando?</string>
+    <string name="bars_example">Compases (ej. 1-8)</string>
+    <string name="select_piece">Seleccionar pieza:</string>
+    <string name="manage_sections">Gestionar secciones</string>
+    <string name="practiced_in_this_session">Practicado en esta sesión:</string>
+
+    <!-- Lists -->
+    <string name="lists_title">Listas</string>
+    <string name="lists_count">%d listas</string>
+    <string name="new_list">Nueva lista</string>
+    <string name="create_list">Crear lista</string>
+    <string name="no_lists_title">Sin listas</string>
+    <string name="no_lists_subtitle">Crea listas para recitales, conciertos, etc.</string>
+    <string name="description">Descripción</string>
+    <string name="delete_list_title">¿Eliminar lista?</string>
+    <string name="delete_list_text">Las piezas no se eliminarán.</string>
+    <string name="remove_from_list">Quitar</string>
+
+    <!-- Stats -->
+    <string name="stats_title">Estadísticas</string>
+    <string name="pieces_stat">Piezas</string>
+    <string name="practice_time_stat">Tiempo de práctica</string>
+    <string name="status_distribution">Distribución de estado</string>
+    <string name="epochs">Épocas</string>
+    <string name="difficulty">Dificultad</string>
+    <string name="avg_difficulty">Dificultad media: %.1f / 5</string>
+    <string name="top_composers">Compositores principales</string>
+    <string name="recent_sessions">Últimas sesiones (minutos)</string>
+    <string name="no_stats_hint">Añade piezas y sesiones para ver estadísticas.</string>
+
+    <!-- Chord Sheets -->
+    <string name="chords_title">Hojas de acordes</string>
+    <string name="add_song">Añadir</string>
+    <string name="search_placeholder">Buscar…</string>
+    <string name="filter_all">Todas</string>
+    <string name="filter_favorites">Favoritas</string>
+    <string name="filter_imported">Canciones importadas</string>
+    <string name="filter_ug">Importar UG</string>
+    <string name="filter_manual">Manual</string>
+    <string name="indexing_folder">Indizando carpeta: %s…</string>
+    <string name="select_folder_tooltip">Seleccionar carpeta</string>
+    <string name="new_playlist">Nueva lista de reproducción</string>
+    <string name="playlist_name">Nombre</string>
+    <string name="add_to_playlist">Añadir a la lista:</string>
+    <string name="no_playlists">No hay listas disponibles</string>
+    <string name="import_error_title">Error de importación</string>
+
+    <!-- Import Dialog -->
+    <string name="import_dialog_title">Añadir canción</string>
+    <string name="import_dialog_subtitle">Elige un método para añadir hojas de acordes:</string>
+    <string name="import_option_folder_title">1. Importar carpeta</string>
+    <string name="import_option_folder_desc">Importa carpetas enteras (.pro, .crd, .txt, .chopro). Ideal para colecciones de canciones.</string>
+    <string name="import_option_folder_btn">Seleccionar carpeta</string>
+    <string name="import_option_ug_title">2. Importar de Ultimate Guitar</string>
+    <string name="import_option_ug_desc">Copia el texto de Ultimate Guitar. La aplicación lo convertirá automáticamente a formato ChordPro.</string>
+    <string name="import_option_ug_btn">Importar texto de UG</string>
+    <string name="import_option_manual_title">3. Entrada manual</string>
+    <string name="import_option_manual_desc">Crea una hoja de acordes manualmente. Usa el formato ChordPro [C]Texto.</string>
+    <string name="import_option_manual_btn">Crear manualmente</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ajustes</string>
+    <string name="language_setting">Idioma</string>
+    <string name="system_language">Sistema (Por defecto)</string>
+    <string name="active_epochs">Épocas activas</string>
+    <string name="active_epochs_desc">Elige qué épocas deben aparecer en las listas de selección.</string>
+    <string name="chord_sheets_setting">Hojas de acordes</string>
+    <string name="reindex_desc">Reconstruir el índice de canciones si se han añadido archivos a la carpeta.</string>
+    <string name="reindex_button">Actualizar índice de canciones</string>
+    <string name="indexing_button">Indizando…</string>
+    <string name="tutorial_setting">Guía y Tutorial</string>
+    <string name="tutorial_desc">¿Quieres volver a ver la introducción de la aplicación?</string>
+    <string name="start_tutorial_btn">Iniciar tutorial</string>
+
+    <!-- Tutorial / Onboarding -->
+    <string name="tutorial_welcome_title">¡Bienvenido a Klaviatur! 🎹</string>
+    <string name="tutorial_welcome_desc">Klaviatur te ayuda a gestionar tu repertorio musical, practicar eficazmente y organizar hojas de acordes.</string>
+    <string name="tutorial_repertoire_title">1. Repertorio y piezas</string>
+    <string name="tutorial_repertoire_desc">Registra tus piezas con compositor, época, dificultad y compases. Divide las piezas en secciones y sigue tu progreso.</string>
+    <string name="tutorial_sessions_title">2. Sesiones de práctica y temporizador</string>
+    <string name="tutorial_sessions_desc">Usa el temporizador de práctica con modo Enfoque y metrónomo integrado. ¡Mantén tu racha diaria de práctica!</string>
+    <string name="tutorial_chords_title">3. Acordes e importación</string>
+    <string name="tutorial_chords_desc">¡Importa canciones desde carpetas o Ultimate Guitar con desplazamiento automático mientras tocas!</string>
+    <string name="tutorial_lists_stats_title">4. Listas y estadísticas</string>
+    <string name="tutorial_lists_stats_desc">Crea programas para recitales y conciertos, y realiza un seguimiento de tus estadísticas de práctica.</string>
+    <string name="tutorial_next">Siguiente</string>
+    <string name="tutorial_prev">Anterior</string>
+    <string name="tutorial_finish">¡Empezar!</string>
+</resources>

@@ -9,7 +9,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import de.klaviatur.R
 import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.util.MetronomeManager
 
@@ -33,15 +35,15 @@ fun MetronomeBottomSheet(
                 .padding(bottom = 48.dp, start = 24.dp, end = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Metronom", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.metronome), style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Text(
                 text = "$bpm BPM",
                 style = MaterialTheme.typography.displayMedium,
                 color = ForestGreen
             )
-            
+
             Slider(
                 value = bpm.toFloat(),
                 onValueChange = { manager.setBpm(it.toInt()) },
@@ -52,7 +54,7 @@ fun MetronomeBottomSheet(
                     activeTrackColor = ForestGreen
                 )
             )
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(32.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -61,7 +63,7 @@ fun MetronomeBottomSheet(
                     onClick = { manager.setBpm(bpm - 1) },
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = ForestGreen.copy(alpha = 0.1f), contentColor = ForestGreen)
                 ) { Icon(Icons.Default.Remove, null) }
-                
+
                 Button(
                     onClick = { manager.toggle() },
                     modifier = Modifier.height(64.dp).width(120.dp),
@@ -69,7 +71,10 @@ fun MetronomeBottomSheet(
                         containerColor = if (isPlaying) Color.Red else ForestGreen
                     )
                 ) {
-                    Text(if (isPlaying) "STOP" else "START", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        if (isPlaying) stringResource(R.string.action_stop) else stringResource(R.string.action_start),
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 }
 
                 FilledIconButton(

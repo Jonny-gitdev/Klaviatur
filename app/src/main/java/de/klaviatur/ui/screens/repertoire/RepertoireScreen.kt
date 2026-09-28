@@ -17,12 +17,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.Epoch
 import de.klaviatur.data.model.PieceStatus
 import de.klaviatur.ui.components.PieceCard
 import de.klaviatur.ui.components.SectionHeader
+import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,7 +56,7 @@ fun RepertoireScreen(
                         OutlinedTextField(
                             value = filter.query,
                             onValueChange = { viewModel.setFilter(filter.copy(query = it)) },
-                            placeholder = { Text("Suchen…", style = MaterialTheme.typography.bodyMedium) },
+                            placeholder = { Text(stringResource(R.string.action_search), style = MaterialTheme.typography.bodyMedium) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -63,8 +66,14 @@ fun RepertoireScreen(
                         )
                     } else {
                         Column {
-                            Text("Repertoire", style = MaterialTheme.typography.headlineMedium)
-                            Text("${pieces.size} Stücke", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.repertoire_title), style = MaterialTheme.typography.headlineMedium)
+                            Text(
+                                if (pieces.size == 1)
+                                    stringResource(R.string.piece_count_singular, pieces.size)
+                                else
+                                    stringResource(R.string.pieces_count, pieces.size),
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
                 },
@@ -72,19 +81,19 @@ fun RepertoireScreen(
                     IconButton(onClick = {
                         viewModel.pickShufflePiece()?.let { onPieceClick(it) }
                     }) {
-                        Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = ForestGreen)
+                        Icon(Icons.Default.Shuffle, contentDescription = stringResource(R.string.shuffle), tint = ForestGreen)
                     }
                     IconButton(onClick = onShowMetronome) {
-                        Icon(Icons.Default.MusicNote, contentDescription = "Metronom", tint = TextMuted)
+                        Icon(Icons.Default.MusicNote, contentDescription = stringResource(R.string.metronome), tint = TextMuted)
                     }
                     IconButton(onClick = onSettingsClick) {
-                        Icon(Icons.Default.Settings, contentDescription = "Einstellungen", tint = TextMuted)
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings), tint = TextMuted)
                     }
                     IconButton(onClick = {
                         showSearch = !showSearch
                         if (!showSearch) viewModel.setFilter(filter.copy(query = ""))
                     }) {
-                        Icon(Icons.Default.Search, contentDescription = "Suchen", tint = TextMuted)
+                        Icon(Icons.Default.Search, contentDescription = stringResource(R.string.action_search), tint = TextMuted)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
@@ -95,9 +104,9 @@ fun RepertoireScreen(
                 onClick = onAddPiece,
                 containerColor = ForestGreen,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Stück hinzufügen")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_piece))
             }
         }
     ) { padding ->
@@ -129,13 +138,13 @@ fun RepertoireScreen(
                                 Text("💡", style = MaterialTheme.typography.titleMedium)
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "Zeit zum Auffrischen!",
+                                    stringResource(R.string.refresh_time_title),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = ForestGreenText
                                 )
                             }
                             Text(
-                                "Diese Stücke hast du schon länger nicht mehr geübt:",
+                                stringResource(R.string.refresh_time_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
                             )
@@ -166,9 +175,12 @@ fun RepertoireScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("🎼", style = MaterialTheme.typography.headlineLarge)
                             Spacer(Modifier.height(12.dp))
-                            Text("Noch keine Stücke", style = MaterialTheme.typography.titleMedium)
-                            Text("Tippe auf + um dein erstes Stück anzulegen", style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 4.dp))
+                            Text(stringResource(R.string.no_pieces_title), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.no_pieces_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     }
                 }
@@ -176,7 +188,7 @@ fun RepertoireScreen(
                 // In Arbeit
                 val inProgress = pieces.filter { it.status == PieceStatus.LEARNING || it.status == PieceStatus.POLISHING }
                 if (inProgress.isNotEmpty()) {
-                    item { SectionHeader("In Arbeit") }
+                    item { SectionHeader(stringResource(R.string.section_in_progress)) }
                     items(inProgress, key = { it.id }) { piece ->
                         PieceCard(piece = piece, onClick = { onPieceClick(piece.id) })
                     }
@@ -185,7 +197,7 @@ fun RepertoireScreen(
                 // Repertoire
                 val repertoire = pieces.filter { it.status == PieceStatus.REPERTOIRE }
                 if (repertoire.isNotEmpty()) {
-                    item { Spacer(Modifier.height(4.dp)); SectionHeader("Repertoire") }
+                    item { Spacer(Modifier.height(4.dp)); SectionHeader(stringResource(R.string.section_repertoire)) }
                     items(repertoire, key = { it.id }) { piece ->
                         PieceCard(piece = piece, onClick = { onPieceClick(piece.id) })
                     }
@@ -194,7 +206,7 @@ fun RepertoireScreen(
                 // Neu
                 val newPieces = pieces.filter { it.status == PieceStatus.NEW }
                 if (newPieces.isNotEmpty()) {
-                    item { Spacer(Modifier.height(4.dp)); SectionHeader("Neu") }
+                    item { Spacer(Modifier.height(4.dp)); SectionHeader(stringResource(R.string.section_new)) }
                     items(newPieces, key = { it.id }) { piece ->
                         PieceCard(piece = piece, onClick = { onPieceClick(piece.id) })
                     }
@@ -218,21 +230,21 @@ private fun FilterChipRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(Icons.Default.FilterList, null, tint = TextMuted, modifier = Modifier.size(20.dp))
-        
+
         PieceStatus.entries.forEach { status ->
             FilterChip(
                 selected = filter.status == status,
                 onClick = {
                     onFilterChange(filter.copy(status = if (filter.status == status) null else status))
                 },
-                label = { Text(status.label, style = MaterialTheme.typography.labelSmall) },
+                label = { Text(status.localizedLabel(), style = MaterialTheme.typography.labelSmall) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = ForestGreenBg,
                     selectedLabelColor = ForestGreenText
                 )
             )
         }
-        
+
         allTags.forEach { tag ->
             val selected = filter.selectedTags.contains(tag)
             FilterChip(
@@ -255,7 +267,7 @@ private fun FilterChipRow(
                 onClick = {
                     onFilterChange(filter.copy(epoch = if (filter.epoch == epoch) null else epoch))
                 },
-                label = { Text(epoch.label, style = MaterialTheme.typography.labelSmall) },
+                label = { Text(epoch.localizedLabel(), style = MaterialTheme.typography.labelSmall) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = AmberBg,
                     selectedLabelColor = AmberText

@@ -10,9 +10,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.PracticeSession
 import de.klaviatur.ui.theme.*
 import java.util.*
@@ -25,14 +27,14 @@ fun AddSessionScreen(
 ) {
     val allPieces by viewModel.allPieces.collectAsState()
 
-    var durationText    by remember { mutableStateOf("") }
-    var notes           by remember { mutableStateOf("") }
+    var durationText by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
     var selectedPieceIds by remember { mutableStateOf(setOf<Long>()) }
-    var durationError   by remember { mutableStateOf(false) }
+    var durationError by remember { mutableStateOf(false) }
 
     // Date picker state
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
-    var showDatePicker  by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     val selectedDateMs = datePickerState.selectedDateMillis ?: System.currentTimeMillis()
     val displayDate = remember(selectedDateMs) {
@@ -44,7 +46,7 @@ fun AddSessionScreen(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("OK", color = ForestGreen) }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_ok), color = ForestGreen) }
             }
         ) { DatePicker(state = datePickerState) }
     }
@@ -53,22 +55,22 @@ fun AddSessionScreen(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
-                title = { Text("Neue Session") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zurück") } },
+                title = { Text(stringResource(R.string.new_session)) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
                 actions = {
                     TextButton(onClick = {
                         val dur = durationText.toIntOrNull()
                         if (dur == null || dur <= 0) { durationError = true; return@TextButton }
                         viewModel.upsert(
                             PracticeSession(
-                                dateMillis      = selectedDateMs,
+                                dateMillis = selectedDateMs,
                                 durationMinutes = dur,
-                                pieceIds        = selectedPieceIds.map { it.toString() },
-                                notes           = notes.trim()
+                                pieceIds = selectedPieceIds.map { it.toString() },
+                                notes = notes.trim()
                             )
                         )
                         onBack()
-                    }) { Text("Speichern", color = ForestGreen) }
+                    }) { Text(stringResource(R.string.action_save), color = ForestGreen) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
             )
@@ -84,13 +86,13 @@ fun AddSessionScreen(
         ) {
             // Date & duration
             FormSurface {
-                Text("DATUM & DAUER", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 10.dp))
+                Text(stringResource(R.string.date_and_duration), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = displayDate,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Datum") },
+                        label = { Text(stringResource(R.string.date)) },
                         modifier = Modifier.weight(1f),
                         colors = sessionFieldColors(),
                         trailingIcon = {
@@ -102,7 +104,7 @@ fun AddSessionScreen(
                     OutlinedTextField(
                         value = durationText,
                         onValueChange = { durationText = it; durationError = false },
-                        label = { Text("Minuten") },
+                        label = { Text(stringResource(R.string.minutes)) },
                         isError = durationError,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f),
@@ -114,7 +116,7 @@ fun AddSessionScreen(
             // Pieces
             if (allPieces.isNotEmpty()) {
                 FormSurface {
-                    Text("GEÜBTE STÜCKE", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 6.dp))
+                    Text(stringResource(R.string.practiced_pieces), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 6.dp))
                     allPieces.forEach { piece ->
                         Row(
                             Modifier.fillMaxWidth(),
@@ -142,11 +144,11 @@ fun AddSessionScreen(
 
             // Notes
             FormSurface {
-                Text("NOTIZEN", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 8.dp))
+                Text(stringResource(R.string.field_notes), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 8.dp))
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    placeholder = { Text("Was lief gut? Was war schwierig?") },
+                    placeholder = { Text(stringResource(R.string.field_notes_placeholder)) },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
                     minLines = 3,
                     colors = sessionFieldColors()
@@ -171,10 +173,10 @@ private fun FormSurface(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 private fun sessionFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor      = ForestGreen,
-    unfocusedBorderColor    = BorderColor,
-    focusedLabelColor       = ForestGreen,
-    cursorColor             = ForestGreen,
-    focusedContainerColor   = PaperWhite,
+    focusedBorderColor = ForestGreen,
+    unfocusedBorderColor = BorderColor,
+    focusedLabelColor = ForestGreen,
+    cursorColor = ForestGreen,
+    focusedContainerColor = PaperWhite,
     unfocusedContainerColor = PaperWhite
 )

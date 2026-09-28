@@ -13,14 +13,44 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.klaviatur.R
+import de.klaviatur.data.model.Epoch
 import de.klaviatur.data.model.Piece
 import de.klaviatur.data.model.PieceSection
 import de.klaviatur.data.model.PieceStatus
 import de.klaviatur.data.model.ProgressLevel
 import de.klaviatur.ui.theme.*
+
+// ── Localization Extensions ───────────────────────────────────────────────────
+
+@Composable
+fun PieceStatus.localizedLabel(): String = when (this) {
+    PieceStatus.NEW -> stringResource(R.string.status_new)
+    PieceStatus.LEARNING -> stringResource(R.string.status_learning)
+    PieceStatus.POLISHING -> stringResource(R.string.status_polishing)
+    PieceStatus.REPERTOIRE -> stringResource(R.string.status_repertoire)
+}
+
+@Composable
+fun ProgressLevel.localizedLabel(): String = when (this) {
+    ProgressLevel.NOT_LEARNED -> stringResource(R.string.state_not_learned)
+    ProgressLevel.WIP -> stringResource(R.string.status_learning)
+    ProgressLevel.GOOD -> stringResource(R.string.status_polishing)
+    ProgressLevel.SAFE -> stringResource(R.string.state_safe)
+}
+
+@Composable
+fun Epoch.localizedLabel(): String = when (this) {
+    Epoch.BAROCK -> stringResource(R.string.epoch_baroque)
+    Epoch.KLASSIK -> stringResource(R.string.epoch_classical)
+    Epoch.ROMANTIK -> stringResource(R.string.epoch_romantic)
+    Epoch.MODERNE -> stringResource(R.string.epoch_modern)
+    Epoch.ZEITGENOESSISCH -> stringResource(R.string.epoch_pop_jazz)
+}
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -39,7 +69,7 @@ fun StatusBadge(status: PieceStatus, modifier: Modifier = Modifier) {
         tonalElevation = 0.dp
     ) {
         Text(
-            text  = status.label,
+            text  = status.localizedLabel(),
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.W600, color = fg),
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
         )
@@ -76,8 +106,8 @@ fun BarProgress(sections: List<PieceSection>, totalBars: Int, modifier: Modifier
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Fortschritt", style = MaterialTheme.typography.bodySmall)
-            Text("${(safeFrac * 100).toInt()}% sicher", style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.progress_header), style = MaterialTheme.typography.bodySmall)
+            Text("${(safeFrac * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.height(4.dp))
         Canvas(

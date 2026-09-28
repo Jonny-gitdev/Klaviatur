@@ -10,8 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.PieceList
 import de.klaviatur.ui.theme.*
 
@@ -23,20 +25,19 @@ fun ListsScreen(
 ) {
     val lists by viewModel.lists.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
-    var newListName      by remember { mutableStateOf("") }
-    var newListDesc      by remember { mutableStateOf("") }
+    var newListName by remember { mutableStateOf("") }
+    var newListDesc by remember { mutableStateOf("") }
 
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text("Neue Liste") },
+            title = { Text(stringResource(R.string.new_list)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = newListName,
                         onValueChange = { newListName = it },
-                        label = { Text("Name *") },
-                        placeholder = { Text("z.B. Vorspiel 2026") },
+                        label = { Text("${stringResource(R.string.playlist_name)} *") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = listFieldColors()
@@ -44,7 +45,7 @@ fun ListsScreen(
                     OutlinedTextField(
                         value = newListDesc,
                         onValueChange = { newListDesc = it },
-                        label = { Text("Beschreibung") },
+                        label = { Text(stringResource(R.string.description)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = listFieldColors()
@@ -58,9 +59,9 @@ fun ListsScreen(
                         newListName = ""; newListDesc = ""
                         showCreateDialog = false
                     }
-                }) { Text("Erstellen", color = ForestGreen) }
+                }) { Text(stringResource(R.string.action_create), color = ForestGreen) }
             },
-            dismissButton = { TextButton(onClick = { showCreateDialog = false }) { Text("Abbrechen") } }
+            dismissButton = { TextButton(onClick = { showCreateDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
 
@@ -70,8 +71,8 @@ fun ListsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Listen", style = MaterialTheme.typography.headlineMedium)
-                        Text("${lists.size} Listen", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.lists_title), style = MaterialTheme.typography.headlineMedium)
+                        Text(stringResource(R.string.lists_count, lists.size), style = MaterialTheme.typography.bodySmall)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
@@ -83,7 +84,7 @@ fun ListsScreen(
                 containerColor = ForestGreen,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
-            ) { Icon(Icons.Default.Add, "Liste erstellen") }
+            ) { Icon(Icons.Default.Add, stringResource(R.string.create_list)) }
         }
     ) { padding ->
         LazyColumn(
@@ -97,10 +98,12 @@ fun ListsScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("📁", style = MaterialTheme.typography.headlineLarge)
                             Spacer(Modifier.height(12.dp))
-                            Text("Keine Listen", style = MaterialTheme.typography.titleMedium)
-                            Text("Erstelle Listen z.B. für Vorspielprogramme",
+                            Text(stringResource(R.string.no_lists_title), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.no_lists_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 4.dp))
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     }
                 }
@@ -133,11 +136,13 @@ private fun ListCard(list: PieceList, pieceCount: Int, onClick: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(list.name, style = MaterialTheme.typography.titleMedium)
                 if (list.description.isNotBlank()) {
-                    Text(list.description, style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 2.dp))
+                    Text(
+                        list.description, style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 }
                 Text(
-                    "$pieceCount Stück${if (pieceCount != 1) "e" else ""}",
+                    if (pieceCount == 1) stringResource(R.string.piece_count_singular, pieceCount) else stringResource(R.string.pieces_count, pieceCount),
                     style = MaterialTheme.typography.bodySmall.copy(color = ForestGreen),
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -149,10 +154,10 @@ private fun ListCard(list: PieceList, pieceCount: Int, onClick: () -> Unit) {
 
 @Composable
 private fun listFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor      = ForestGreen,
-    unfocusedBorderColor    = BorderColor,
-    focusedLabelColor       = ForestGreen,
-    cursorColor             = ForestGreen,
-    focusedContainerColor   = PaperWhite,
+    focusedBorderColor = ForestGreen,
+    unfocusedBorderColor = BorderColor,
+    focusedLabelColor = ForestGreen,
+    cursorColor = ForestGreen,
+    focusedContainerColor = PaperWhite,
     unfocusedContainerColor = PaperWhite
 )

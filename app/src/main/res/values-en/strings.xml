@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Klaviatur</string>
+
+    <!-- Navigation -->
+    <string name="nav_repertoire">Repertoire</string>
+    <string name="nav_sessions">Practice</string>
+    <string name="nav_lists">Lists</string>
+    <string name="nav_stats">Statistics</string>
+    <string name="nav_chords">Chords</string>
+
+    <!-- General Actions & Common -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_close">Close</string>
+    <string name="action_ok">OK</string>
+    <string name="action_search">Search…</string>
+    <string name="action_create">Create</string>
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="settings">Settings</string>
+    <string name="metronome">Metronome</string>
+
+    <!-- Repertoire Screen -->
+    <string name="repertoire_title">Repertoire</string>
+    <string name="pieces_count">%d pieces</string>
+    <string name="piece_count_singular">%d piece</string>
+    <string name="add_piece">Add piece</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="refresh_time_title">Time to refresh!</string>
+    <string name="refresh_time_subtitle">You haven\'t practiced these pieces in a while:</string>
+    <string name="no_pieces_title">No pieces yet</string>
+    <string name="no_pieces_subtitle">Tap + to add your first piece</string>
+    <string name="section_in_progress">In progress</string>
+    <string name="section_repertoire">Repertoire</string>
+    <string name="section_new">New</string>
+    <string name="status_new">New</string>
+    <string name="status_learning">Learning</string>
+    <string name="status_polishing">Polishing</string>
+    <string name="status_repertoire">Repertoire</string>
+    <string name="epoch_renaissance">Renaissance</string>
+    <string name="epoch_baroque">Baroque</string>
+    <string name="epoch_classical">Classical</string>
+    <string name="epoch_romantic">Romantic</string>
+    <string name="epoch_modern">Modern</string>
+    <string name="epoch_pop_jazz">Pop / Jazz</string>
+
+    <!-- Piece Detail & Add/Edit Piece -->
+    <string name="piece_detail_title">Piece Details</string>
+    <string name="new_piece">New Piece</string>
+    <string name="edit_piece">Edit Piece</string>
+    <string name="delete_piece_title">Delete piece?</string>
+    <string name="delete_piece_message">This action cannot be undone.</string>
+    <string name="openopus_search">OpenOpus Search</string>
+    <string name="openopus_placeholder">Composer or title…</string>
+    <string name="field_title">Title *</string>
+    <string name="field_composer">Composer *</string>
+    <string name="field_key">Key Signature</string>
+    <string name="field_key_placeholder">e.g. C# minor</string>
+    <string name="field_epoch">Epoch</string>
+    <string name="select_epoch">– select –</string>
+    <string name="no_epoch">– none –</string>
+    <string name="field_status">Status</string>
+    <string name="field_difficulty">Difficulty</string>
+    <string name="field_total_bars">Total Bars</string>
+    <string name="field_total_bars_placeholder">e.g. 64</string>
+    <string name="field_start_state">Initial State</string>
+    <string name="state_not_learned">Not learned yet</string>
+    <string name="state_safe">Mastered</string>
+    <string name="field_target_bpm">Target BPM</string>
+    <string name="field_target_bpm_placeholder">e.g. 92</string>
+    <string name="field_tags">Tags</string>
+    <string name="field_tag_placeholder">New tag…</string>
+    <string name="field_notes">Notes</string>
+    <string name="field_notes_placeholder">Performance notes, difficulties, tips…</string>
+    <string name="last_practiced">Last practiced: %s</string>
+    <string name="progress_header">PROGRESS</string>
+    <string name="sections_header">SECTIONS</string>
+    <string name="tempo_log_header">TEMPO LOG</string>
+    <string name="auto_split">Auto-Split</string>
+    <string name="add_section">+ Section</string>
+    <string name="add_entry">+ Entry</string>
+    <string name="auto_split_title">Auto-Split Sections</string>
+    <string name="bars_per_section">Bars per section</string>
+    <string name="split_button">Split</string>
+    <string name="add_tempo_title">Log Tempo</string>
+    <string name="bpm">BPM</string>
+    <string name="note_optional">Note (optional)</string>
+    <string name="no_sections_defined">No sections defined yet.</string>
+    <string name="no_tempo_entries">No entries yet.</string>
+    <string name="ready_to_practice">Ready to practice?</string>
+    <string name="practice_running">Practice in progress…</string>
+    <string name="switch_to_focus">Switch to Focus Mode</string>
+
+    <!-- Practice Sessions -->
+    <string name="sessions_title">Practice Sessions</string>
+    <string name="sessions_count">%d entries</string>
+    <string name="add_session">Add session</string>
+    <string name="new_session">New Session</string>
+    <string name="practice_now">Practice Now (Timer)</string>
+    <string name="to_active_session">Go to active session</string>
+    <string name="streak_label">Day Streak</string>
+    <string name="total_label">Total</string>
+    <string name="sessions_label">Sessions</string>
+    <string name="no_sessions_title">No Sessions</string>
+    <string name="no_sessions_subtitle">Tap + to log your first practice session</string>
+    <string name="delete_session_confirm">Delete session?</string>
+    <string name="date_and_duration">DATE &amp; DURATION</string>
+    <string name="date">Date</string>
+    <string name="minutes">Minutes</string>
+    <string name="practiced_pieces">PRACTICED PIECES</string>
+    <string name="practice_session_running">PRACTICE SESSION</string>
+    <string name="end_session">End Session</string>
+    <string name="what_are_you_practicing">What are you practicing?</string>
+    <string name="bars_example">Bars (e.g. 1-8)</string>
+    <string name="select_piece">Select piece:</string>
+    <string name="manage_sections">Manage sections</string>
+    <string name="practiced_in_this_session">Practiced in this session:</string>
+
+    <!-- Lists -->
+    <string name="lists_title">Lists</string>
+    <string name="lists_count">%d lists</string>
+    <string name="new_list">New List</string>
+    <string name="create_list">Create list</string>
+    <string name="no_lists_title">No Lists</string>
+    <string name="no_lists_subtitle">Create lists for recitals, concerts, etc.</string>
+    <string name="description">Description</string>
+    <string name="delete_list_title">Delete list?</string>
+    <string name="delete_list_text">The pieces will not be deleted.</string>
+    <string name="remove_from_list">Remove</string>
+
+    <!-- Stats -->
+    <string name="stats_title">Statistics</string>
+    <string name="pieces_stat">Pieces</string>
+    <string name="practice_time_stat">Practice Time</string>
+    <string name="status_distribution">Status Distribution</string>
+    <string name="epochs">Epochs</string>
+    <string name="difficulty">Difficulty</string>
+    <string name="avg_difficulty">Avg. difficulty: %.1f / 5</string>
+    <string name="top_composers">Top Composers</string>
+    <string name="recent_sessions">Recent Sessions (Minutes)</string>
+    <string name="no_stats_hint">Add pieces and sessions to see statistics.</string>
+
+    <!-- Chord Sheets -->
+    <string name="chords_title">Chord Sheets</string>
+    <string name="add_song">Add</string>
+    <string name="search_placeholder">Search…</string>
+    <string name="filter_all">All</string>
+    <string name="filter_favorites">Favorites</string>
+    <string name="filter_imported">Imported Songs</string>
+    <string name="filter_ug">UG Import</string>
+    <string name="filter_manual">Manual</string>
+    <string name="indexing_folder">Indexing folder: %s…</string>
+    <string name="select_folder_tooltip">Select folder</string>
+    <string name="new_playlist">New Playlist</string>
+    <string name="playlist_name">Name</string>
+    <string name="add_to_playlist">Add to playlist:</string>
+    <string name="no_playlists">No playlists available</string>
+    <string name="import_error_title">Import Error</string>
+
+    <!-- Import Dialog -->
+    <string name="import_dialog_title">Add Song</string>
+    <string name="import_dialog_subtitle">Choose a method to add chord sheets:</string>
+    <string name="import_option_folder_title">1. Import Folder</string>
+    <string name="import_option_folder_desc">Import entire folders with song files (.pro, .crd, .txt, .chopro). Ideal for existing song collections.</string>
+    <string name="import_option_folder_btn">Select Folder</string>
+    <string name="import_option_ug_title">2. Ultimate Guitar Import</string>
+    <string name="import_option_ug_desc">Copy chords and text from Ultimate Guitar. The app automatically converts it into ChordPro format.</string>
+    <string name="import_option_ug_btn">Import UG Text</string>
+    <string name="import_option_manual_title">3. Manual Entry</string>
+    <string name="import_option_manual_desc">Create a chord sheet manually. Use ChordPro format [C]Text for precise chord placement.</string>
+    <string name="import_option_manual_btn">Create Manually</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="language_setting">Language</string>
+    <string name="system_language">System (Device default)</string>
+    <string name="active_epochs">Active Epochs</string>
+    <string name="active_epochs_desc">Choose which epochs should appear in selection lists.</string>
+    <string name="chord_sheets_setting">Chord Sheets</string>
+    <string name="reindex_desc">Rebuild song index if files were added to the selected folder.</string>
+    <string name="reindex_button">Update Song Index</string>
+    <string name="indexing_button">Indexing…</string>
+    <string name="tutorial_setting">Guide &amp; Tutorial</string>
+    <string name="tutorial_desc">Would you like to view the app introduction again?</string>
+    <string name="start_tutorial_btn">Start Tutorial</string>
+
+    <!-- Tutorial / Onboarding -->
+    <string name="tutorial_welcome_title">Welcome to Klaviatur! 🎹</string>
+    <string name="tutorial_welcome_desc">Klaviatur helps you manage your music repertoire, practice effectively, and organize chord sheets.</string>
+    <string name="tutorial_repertoire_title">1. Repertoire &amp; Pieces</string>
+    <string name="tutorial_repertoire_desc">Track your pieces with composer, epoch, difficulty, and total bars. Divide pieces into sections and monitor your progress.</string>
+    <string name="tutorial_sessions_title">2. Practice Sessions &amp; Timer</string>
+    <string name="tutorial_sessions_desc">Use the practice timer with Focus Mode and built-in metronome. Keep your daily practice streak alive!</string>
+    <string name="tutorial_chords_title">3. Chords &amp; Import</string>
+    <string name="tutorial_chords_desc">Import songs from folders, create playlists, or convert chords directly from Ultimate Guitar. Features auto-scroll while playing!</string>
+    <string name="tutorial_lists_stats_title">4. Lists &amp; Statistics</string>
+    <string name="tutorial_lists_stats_desc">Create programs for recitals and concerts, and track your practice statistics over weeks and months.</string>
+    <string name="tutorial_next">Next</string>
+    <string name="tutorial_prev">Back</string>
+    <string name="tutorial_finish">Get Started!</string>
+</resources>

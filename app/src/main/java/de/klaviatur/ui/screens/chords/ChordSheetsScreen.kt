@@ -4,7 +4,6 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,9 +16,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import de.klaviatur.R
 import de.klaviatur.data.repository.ChordSong
 import de.klaviatur.data.repository.IndexingStatus
+import de.klaviatur.ui.components.ChordImportDialog
 import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
@@ -44,6 +46,7 @@ fun ChordSheetsScreen(
     val playlistFilter by viewModel.playlistFilter.collectAsState()
 
     var showPlaylistDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
 
     val folderLauncher = rememberLauncherForActivityResult(
@@ -58,42 +61,38 @@ fun ChordSheetsScreen(
         }
     }
 
+    if (showImportDialog) {
+        ChordImportDialog(
+            onDismiss = { showImportDialog = false },
+            onSelectFolder = { folderLauncher.launch(null) },
+            onImportUg = onImportUg,
+            onAddManual = onAddManual
+        )
+    }
+
     Scaffold(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
-                title = { Text("Chord Sheets") },
+                title = { Text(stringResource(R.string.chords_title)) },
                 actions = {
                     IconButton(onClick = { showPlaylistDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Playlist erstellen")
+                        Icon(Icons.AutoMirrored.Filled.PlaylistAdd, stringResource(R.string.new_playlist))
                     }
                     IconButton(onClick = { folderLauncher.launch(null) }) {
-                        Icon(Icons.Default.Folder, "OLGA Folder wählen")
+                        Icon(Icons.Default.Folder, stringResource(R.string.select_folder_tooltip))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
             )
         },
         floatingActionButton = {
-            var showMenu by remember { mutableStateOf(false) }
-            Box {
-                FloatingActionButton(
-                    onClick = { showMenu = true },
-                    containerColor = ForestGreen,
-                    contentColor = PaperWhite
-                ) {
-                    Icon(Icons.Default.Add, "Hinzufügen")
-                }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text("Manuelle Eingabe") },
-                        onClick = { showMenu = false; onAddManual() }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("UG Import") },
-                        onClick = { showMenu = false; onImportUg() }
-                    )
-                }
+            FloatingActionButton(
+                onClick = { showImportDialog = true },
+                containerColor = ForestGreen,
+                contentColor = PaperWhite
+            ) {
+                Icon(Icons.Default.Add, stringResource(R.string.add_song))
             }
         }
     ) { padding ->
@@ -105,19 +104,22 @@ fun ChordSheetsScreen(
                         color = ForestGreen
                     )
                     Text(
-                        text = "Indiziere OLGA: ${(indexingStatus as IndexingStatus.Indexing).currentCategory}...",
+                        text = stringResource(
+                            R.string.indexing_folder,
+                            (indexingStatus as IndexingStatus.Indexing).currentCategory
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
-                
+
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.updateSearchQuery(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    placeholder = { Text("Suchen...") },
+                    placeholder = { Text(stringResource(R.string.search_placeholder)) },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     singleLine = true
                 )
@@ -132,34 +134,34 @@ fun ChordSheetsScreen(
                     item {
                         FilterChip(
                             selected = sourceFilter == null && !onlyFavorites && playlistFilter == null,
-                            onClick = { 
+                            onClick = {
                                 viewModel.updateSourceFilter(null)
                                 viewModel.updatePlaylistFilter(null)
                                 if (onlyFavorites) viewModel.toggleFavoritesFilter()
                             },
-                            label = { Text("Alle") }
+                            label = { Text(stringResource(R.string.filter_all)) }
                         )
                     }
                     item {
                         FilterChip(
                             selected = onlyFavorites,
                             onClick = { viewModel.toggleFavoritesFilter() },
-                            label = { Text("Favoriten") },
+                            label = { Text(stringResource(R.string.filter_favorites)) },
                             leadingIcon = { Icon(if (onlyFavorites) Icons.Default.Star else Icons.Default.StarBorder, null, modifier = Modifier.size(18.dp)) }
                         )
                     }
                     item {
                         FilterChip(
                             selected = sourceFilter == "OLGA",
-                            onClick = { viewModel.updateSourceFilter("OLGA") },
-                            label = { Text("OLGA") }
+                            onClick = { viewModel.updateSourceFilter(if (sourceFilter == "OLGA") null else "OLGA") },
+                            label = { Text(stringResource(R.string.filter_imported)) }
                         )
                     }
                     item {
                         FilterChip(
                             selected = sourceFilter == "Imported",
-                            onClick = { viewModel.updateSourceFilter("Imported") },
-                            label = { Text("UG") }
+                            onClick = { viewModel.updateSourceFilter(if (sourceFilter == "Imported") null else "Imported") },
+                            label = { Text(stringResource(R.string.filter_ug)) }
                         )
                     }
                 }
@@ -174,7 +176,7 @@ fun ChordSheetsScreen(
                         items(playlists) { playlist ->
                             FilterChip(
                                 selected = playlistFilter == playlist.id,
-                                onClick = { 
+                                onClick = {
                                     viewModel.updatePlaylistFilter(if (playlistFilter == playlist.id) null else playlist.id)
                                 },
                                 label = { Text(playlist.name) }
@@ -195,7 +197,7 @@ fun ChordSheetsScreen(
                                 IconButton(onClick = { viewModel.toggleFavorite(song.identifier) }) {
                                     Icon(
                                         if (isFav) Icons.Default.Star else Icons.Default.StarBorder,
-                                        contentDescription = "Favorit",
+                                        contentDescription = stringResource(R.string.filter_favorites),
                                         tint = if (isFav) ForestGreen else LocalContentColor.current
                                     )
                                 }
@@ -207,7 +209,11 @@ fun ChordSheetsScreen(
                                     }
                                     DropdownMenu(expanded = showSongMenu, onDismissRequest = { showSongMenu = false }) {
                                         if (playlists.isNotEmpty()) {
-                                            Text("Zu Playlist hinzufügen:", modifier = Modifier.padding(8.dp), style = MaterialTheme.typography.labelSmall)
+                                            Text(
+                                                stringResource(R.string.add_to_playlist),
+                                                modifier = Modifier.padding(8.dp),
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
                                             playlists.forEach { p ->
                                                 DropdownMenuItem(
                                                     text = { Text(p.name) },
@@ -219,7 +225,7 @@ fun ChordSheetsScreen(
                                             }
                                         } else {
                                             DropdownMenuItem(
-                                                text = { Text("Keine Playlists vorhanden") },
+                                                text = { Text(stringResource(R.string.no_playlists)) },
                                                 onClick = { showSongMenu = false }
                                             )
                                         }
@@ -228,7 +234,7 @@ fun ChordSheetsScreen(
                             },
                             modifier = Modifier.clickable {
                                 val type = if (song is ChordSong.Olga) "olga" else "user"
-                                val idStr = when(song) {
+                                val idStr = when (song) {
                                     is ChordSong.Olga -> song.song.id
                                     is ChordSong.User -> song.song.id.toString()
                                 }
@@ -243,12 +249,12 @@ fun ChordSheetsScreen(
             if (showPlaylistDialog) {
                 AlertDialog(
                     onDismissRequest = { showPlaylistDialog = false },
-                    title = { Text("Neue Playlist") },
+                    title = { Text(stringResource(R.string.new_playlist)) },
                     text = {
                         OutlinedTextField(
                             value = newPlaylistName,
                             onValueChange = { newPlaylistName = it },
-                            label = { Text("Name") },
+                            label = { Text(stringResource(R.string.playlist_name)) },
                             singleLine = true
                         )
                     },
@@ -259,10 +265,10 @@ fun ChordSheetsScreen(
                                 newPlaylistName = ""
                                 showPlaylistDialog = false
                             }
-                        }) { Text("Erstellen") }
+                        }) { Text(stringResource(R.string.action_create)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showPlaylistDialog = false }) { Text("Abbrechen") }
+                        TextButton(onClick = { showPlaylistDialog = false }) { Text(stringResource(R.string.action_cancel)) }
                     }
                 )
             }
@@ -270,11 +276,11 @@ fun ChordSheetsScreen(
             if (indexingStatus is IndexingStatus.Error) {
                 AlertDialog(
                     onDismissRequest = { viewModel.resetIndexingStatus() },
-                    title = { Text("Fehler beim Import") },
+                    title = { Text(stringResource(R.string.import_error_title)) },
                     text = { Text((indexingStatus as IndexingStatus.Error).message) },
                     confirmButton = {
                         TextButton(onClick = { viewModel.resetIndexingStatus() }) {
-                            Text("OK")
+                            Text(stringResource(R.string.action_ok))
                         }
                     }
                 )

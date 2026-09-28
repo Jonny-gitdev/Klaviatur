@@ -15,9 +15,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.data.model.PracticeSession
 import de.klaviatur.ui.components.StatTile
 import de.klaviatur.ui.theme.*
@@ -32,11 +34,11 @@ fun SessionsScreen(
     onShowMetronome: () -> Unit,
     viewModel: SessionViewModel = hiltViewModel()
 ) {
-    val sessions     by viewModel.sessions.collectAsState()
+    val sessions by viewModel.sessions.collectAsState()
     val totalMinutes by viewModel.totalMinutes.collectAsState()
-    val streak       by viewModel.streak.collectAsState()
+    val streak by viewModel.streak.collectAsState()
     val isSessionActive by viewModel.isSessionActive.collectAsState()
-    val totalHours   = totalMinutes / 60f
+    val totalHours = totalMinutes / 60f
 
     Scaffold(
         containerColor = PaperBeige,
@@ -44,13 +46,13 @@ fun SessionsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Übungssessions", style = MaterialTheme.typography.headlineMedium)
-                        Text("${sessions.size} Einträge", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.sessions_title), style = MaterialTheme.typography.headlineMedium)
+                        Text(stringResource(R.string.sessions_count, sessions.size), style = MaterialTheme.typography.bodySmall)
                     }
                 },
                 actions = {
                     IconButton(onClick = onShowMetronome) {
-                        Icon(Icons.Default.MusicNote, contentDescription = "Metronom", tint = TextMuted)
+                        Icon(Icons.Default.MusicNote, contentDescription = stringResource(R.string.metronome), tint = TextMuted)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
@@ -62,7 +64,7 @@ fun SessionsScreen(
                 containerColor = ForestGreen,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
-            ) { Icon(Icons.Default.Add, "Session hinzufügen") }
+            ) { Icon(Icons.Default.Add, stringResource(R.string.add_session)) }
         }
     ) { padding ->
         LazyColumn(
@@ -72,9 +74,9 @@ fun SessionsScreen(
         ) {
             item {
                 Button(
-                    onClick = { 
+                    onClick = {
                         if (!isSessionActive) viewModel.startSession()
-                        onStartPractice(null) 
+                        onStartPractice(null)
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(14.dp),
@@ -85,8 +87,8 @@ fun SessionsScreen(
                     Icon(if (isSessionActive) Icons.Default.Pause else Icons.Default.PlayArrow, null)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (isSessionActive) "Zur laufenden Session" else "Jetzt üben (Timer)", 
-                        style = MaterialTheme.typography.titleMedium, 
+                        if (isSessionActive) stringResource(R.string.to_active_session) else stringResource(R.string.practice_now),
+                        style = MaterialTheme.typography.titleMedium,
                         color = Color.White
                     )
                 }
@@ -97,17 +99,17 @@ fun SessionsScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatTile(
                         value = "🔥 $streak",
-                        label = "Tage Streak",
+                        label = stringResource(R.string.streak_label),
                         modifier = Modifier.weight(1f)
                     )
                     StatTile(
                         value = "${String.format("%.1f", totalHours)}h",
-                        label = "Gesamt",
+                        label = stringResource(R.string.total_label),
                         modifier = Modifier.weight(1f)
                     )
                     StatTile(
                         value = "${sessions.size}",
-                        label = "Sessions",
+                        label = stringResource(R.string.sessions_label),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -119,10 +121,12 @@ fun SessionsScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("📋", style = MaterialTheme.typography.headlineLarge)
                             Spacer(Modifier.height(12.dp))
-                            Text("Keine Sessions", style = MaterialTheme.typography.titleMedium)
-                            Text("Tippe auf + um deine erste Session einzutragen",
+                            Text(stringResource(R.string.no_sessions_title), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.no_sessions_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(top = 4.dp))
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     }
                 }
@@ -149,19 +153,19 @@ private fun SessionCard(
     pieceNames: List<String>,
     onDelete: () -> Unit
 ) {
-    val sdf = SimpleDateFormat("EEEE, dd. MMMM yyyy", Locale.GERMANY)
+    val sdf = SimpleDateFormat("EEEE, dd. MMMM yyyy", Locale.getDefault())
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            text = { Text("Session löschen?") },
+            text = { Text(stringResource(R.string.delete_session_confirm)) },
             confirmButton = {
                 TextButton(onClick = { onDelete(); showDeleteConfirm = false }) {
-                    Text("Löschen", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Abbrechen") } }
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
 
@@ -183,7 +187,7 @@ private fun SessionCard(
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        "${session.durationMinutes} Minuten",
+                        "${session.durationMinutes} ${stringResource(R.string.minutes)}",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = ForestGreen,
                             fontWeight = FontWeight.W500
@@ -191,7 +195,7 @@ private fun SessionCard(
                     )
                 }
                 IconButton(onClick = { showDeleteConfirm = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, "Löschen", tint = TextHint, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, stringResource(R.string.action_delete), tint = TextHint, modifier = Modifier.size(18.dp))
                 }
             }
 

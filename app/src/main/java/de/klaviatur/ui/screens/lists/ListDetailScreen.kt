@@ -11,8 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import de.klaviatur.R
 import de.klaviatur.ui.components.PieceCard
 import de.klaviatur.ui.theme.*
 
@@ -24,11 +26,11 @@ fun ListDetailScreen(
     onPieceClick: (Long) -> Unit,
     viewModel: ListViewModel = hiltViewModel()
 ) {
-    val lists     by viewModel.lists.collectAsState()
+    val lists by viewModel.lists.collectAsState()
     val allPieces by viewModel.allPieces.collectAsState()
-    val list      = lists.find { it.id == listId }
+    val list = lists.find { it.id == listId }
 
-    var showAddPieceDialog  by remember { mutableStateOf(false) }
+    var showAddPieceDialog by remember { mutableStateOf(false) }
     var showDeleteListDialog by remember { mutableStateOf(false) }
 
     if (list == null) {
@@ -38,17 +40,17 @@ fun ListDetailScreen(
         return
     }
 
-    val piecesInList    = viewModel.piecesForList(list)
+    val piecesInList = viewModel.piecesForList(list)
     val piecesNotInList = allPieces.filter { !list.pieceIds.contains(it.id) }
 
     // Add piece dialog
     if (showAddPieceDialog) {
         AlertDialog(
             onDismissRequest = { showAddPieceDialog = false },
-            title = { Text("Stück hinzufügen") },
+            title = { Text(stringResource(R.string.add_piece)) },
             text = {
                 if (piecesNotInList.isEmpty()) {
-                    Text("Alle Stücke sind bereits in dieser Liste.")
+                    Text(stringResource(R.string.no_pieces_title))
                 } else {
                     LazyColumn(Modifier.heightIn(max = 300.dp)) {
                         items(piecesNotInList) { piece ->
@@ -69,7 +71,7 @@ fun ListDetailScreen(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { showAddPieceDialog = false }) { Text("Schließen") } }
+            confirmButton = { TextButton(onClick = { showAddPieceDialog = false }) { Text(stringResource(R.string.action_close)) } }
         )
     }
 
@@ -77,16 +79,16 @@ fun ListDetailScreen(
     if (showDeleteListDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteListDialog = false },
-            title = { Text("Liste löschen?") },
-            text  = { Text("Die Stücke bleiben erhalten.") },
+            title = { Text(stringResource(R.string.delete_list_title)) },
+            text = { Text(stringResource(R.string.delete_list_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteList(list)
                     showDeleteListDialog = false
                     onBack()
-                }) { Text("Löschen", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteListDialog = false }) { Text("Abbrechen") } }
+            dismissButton = { TextButton(onClick = { showDeleteListDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
         )
     }
 
@@ -101,10 +103,10 @@ fun ListDetailScreen(
                             Text(list.description, style = MaterialTheme.typography.bodySmall)
                     }
                 },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Zurück") } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
                 actions = {
                     IconButton(onClick = { showDeleteListDialog = true }) {
-                        Icon(Icons.Default.Delete, "Liste löschen", tint = TextHint)
+                        Icon(Icons.Default.Delete, stringResource(R.string.delete_list_title), tint = TextHint)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
@@ -130,9 +132,11 @@ fun ListDetailScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("🎼", style = MaterialTheme.typography.headlineLarge)
                             Spacer(Modifier.height(12.dp))
-                            Text("Keine Stücke", style = MaterialTheme.typography.titleMedium)
-                            Text("Tippe auf + um Stücke hinzuzufügen",
-                                style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+                            Text(stringResource(R.string.no_pieces_title), style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                stringResource(R.string.no_pieces_subtitle),
+                                style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     }
                 }
@@ -140,14 +144,15 @@ fun ListDetailScreen(
                 items(piecesInList, key = { it.id }) { piece ->
                     Box {
                         PieceCard(piece = piece, onClick = { onPieceClick(piece.id) })
-                        // Swipe-to-remove hint via long-press action — kept simple with a remove button overlay
                         Box(Modifier.align(Alignment.TopEnd).padding(6.dp)) {
                             IconButton(
                                 onClick = { viewModel.removePieceFromList(listId, piece.id) },
                                 modifier = Modifier.size(28.dp)
                             ) {
-                                Icon(Icons.Default.Delete, "Entfernen",
-                                    tint = TextHint, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Delete, stringResource(R.string.remove_from_list),
+                                    tint = TextHint, modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
                     }
