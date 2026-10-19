@@ -266,6 +266,80 @@ private fun detectStaffBoundaryStrokes(
         )
     }
 
+    /*
+     * Detect measure/bar lines independently inside every staff. A candidate
+     * must contain dark pixels at the midpoint of at least three of the four
+     * inter-line gaps. This is more selective than a generic vertical edge
+     * detector, which would incorrectly mark note stems and stems of chords.
+     */
+    val blue = android.graphics.Color.rgb(35, 125, 245).toLong()
+    for (staff in staffs) {
+        val staffSlope = staff.slope
+        val firstX = (minX + width * 0.012f).toInt().coerceIn(0, width - 1)
+        val lastX = (maxX - width * 0.012f).toInt().coerceIn(firstX, width - 1)
+        val candidateScores = IntArray(width)
+
+        for (x in firstX..lastX) {
+            var gapHits = 0
+            var verticalSupport = 0
+            for (gapIndex in 0 until 4) {
+                val midpointAligned = (staff.lineCenters[gapIndex] + staff.lineCenters[gapIndex + 1]) / 2f
+                val midpointY = (midpointAligned + staffSlope * (x - centerX)).toInt()
+                var localHits = 0
+                // A small neighborhood accommodates anti-aliasing and slight
+                // blur without allowing nearby noteheads to count too much.
+                for (dx in -1..1) {
+                    for (dy in -1..1) {
+                        val xx = x + dx
+                        val yy = midpointY + dy
+                        if (xx in 0 until width && yy in 0 until height &&
+                            isDark(pixels[yy * width + xx])) {
+                            localHits++
+                        }
+                    }
+                }
+                if (localHits >= 2) {
+                    gapHits++
+                    verticalSupport += localHits
+                }
+            }
+            if (gapHits >= 3) candidateScores[x] = gapHits * 10 + verticalSupport
+        }
+
+        // Merge adjacent candidate columns into a single barline and retain
+        // the strongest column, avoiding thick duplicate annotations.
+        var x = firstX
+        while (x <= lastX) {
+            if (candidateScores[x] == 0) {
+                x++
+                continue
+            }
+            val runStart = x
+            while (x <= lastX && candidateScores[x] > 0) x++
+            val runEnd = x - 1
+            if (runEnd - runStart > (staff.spacing * 0.55f).toInt().coerceAtLeast(2)) continue
+
+            var bestX = runStart
+            for (candidateX in runStart..runEnd) {
+                if (candidateScores[candidateX] > candidateScores[bestX]) bestX = candidateX
+            }
+
+            val topAtX = (staff.top + staffSlope * (bestX - centerX)).coerceIn(0f, height.toFloat())
+            val bottomAtX = (staff.bottom + staffSlope * (bestX - centerX)).coerceIn(0f, height.toFloat())
+            result.add(
+                AnnotationStroke(
+                    points = listOf(
+                        DrawingPoint(bestX * scale, topAtX * scale),
+                        DrawingPoint(bestX * scale, bottomAtX * scale)
+                    ),
+                    color = blue,
+                    strokeWidth = 2.5f,
+                    isEraser = false
+                )
+            )
+        }
+    }
+
     val topY = yAtX(staffs.first().top, minX.toFloat()).coerceIn(0f, displayHeight)
     val bottomY = yAtX(staffs.last().bottom, minX.toFloat()).coerceIn(0f, displayHeight)
     val topRightY = yAtX(staffs.first().top, maxX.toFloat()).coerceIn(0f, displayHeight)
@@ -461,7 +535,8 @@ fun SheetViewerScreen(
                                             // erneuter Lauf keine doppelten Markierungen erzeugt.
                                             val manual = existing.filterNot {
                                                 it.color == android.graphics.Color.rgb(0, 220, 40).toLong() ||
-                                                        it.color == android.graphics.Color.rgb(240, 35, 35).toLong()
+                                                        it.color == android.graphics.Color.rgb(240, 35, 35).toLong() ||
+                                                        it.color == android.graphics.Color.rgb(35, 125, 245).toLong()
                                             }
                                             val replacement = PageAnnotation(
                                                 sheetFileId = page.sheetFileId,
