@@ -80,129 +80,136 @@ private fun detectStaffBoundaryStrokes(
         return (r * 299 + g * 587 + b * 114) / 1000 < 180
     }
 
-    /*
-     * Staff lines are long horizontal runs. Counting all dark pixels in a row
-     * is too sensitive to note heads, stems and text; the longest horizontal
-     * run gives a more useful signal. Allow tiny gaps caused by paper texture
-     * or compression, but do not bridge large gaps.
-     */
-    val rowScores = IntArray(height)
-    val gapAllowance = 2
-    for (y in 0 until height) {
-        val offset = y * width
-        var runStart = -1
-        var lastDarkX = -1
-        var runLength = 0
-        var longest = 0
+    data class Staff(
+        val top: Float,
+        val bottom: Float,
+        val spacing: Float,
+        val slope: Float,
+        val support: Int,
+        val lineCenters: List<Int>
+    )
 
-        for (x in 0 until width) {
-            if (isDark(pixels[offset + x])) {
-                if (runStart < 0) {
-                    runStart = x
-                    runLength = 1
-                } else {
-                    val gap = x - lastDarkX - 1
-                    if (gap <= gapAllowance) {
-                        runLength += gap + 1
-                    } else {
-                        longest = max(longest, runLength)
-                        runStart = x
-                        runLength = 1
-                    }
+    /*
+     * A normal row projection misses lines on skewed phone photos: the staff
+     * line moves vertically as x changes, so no single row contains enough
+     * dark pixels. Try small shears and accumulate dark pixels along each
+     * possible line angle. The best angle is selected by the strength and
+     * regularity of five-line staff candidates.
+     */
+    data class Projection(val slope: Float, val peaks: List<Pair<Int, Int>>)
+    val centerX = (width - 1) / 2f
+    val projections = mutableListOf<Projection>()
+    val angleSteps = (-8..8).map { it * 0.01f } // approximately +/- 4.6 degrees
+    val minimumLineSupport = (width * 0.14f).toInt().coerceAtLeast(30)
+
+    for (slope in angleSteps) {
+        val padding = (kotlin.math.abs(slope) * width / 2f).toInt() + 4
+        val projection = IntArray(height + padding * 2 + 2)
+
+        for (y in 0 until height) {
+            val rowOffset = y * width
+            for (x in 0 until width) {
+                if (isDark(pixels[rowOffset + x])) {
+                    val alignedY = (y - slope * (x - centerX)).toInt() + padding
+                    if (alignedY in projection.indices) projection[alignedY]++
                 }
-                lastDarkX = x
             }
         }
-        longest = max(longest, runLength)
-        rowScores[y] = longest
-    }
 
-    // Relative threshold handles pages with different margins and image sizes.
-    val lineThreshold = (width * 0.20f).toInt().coerceAtLeast(35)
-    val activeRows = BooleanArray(height) { rowScores[it] >= lineThreshold }
-
-    // Merge adjacent active pixels into one candidate line, including small
-    // one-row breaks, then retain the strongest position within each cluster.
-    val candidates = mutableListOf<Int>()
-    var y = 0
-    while (y < height) {
-        if (!activeRows[y]) {
-            y++
-            continue
-        }
-        val startY = y
-        while (y < height && activeRows[y]) y++
-        var endY = y - 1
-
-        // Join clusters separated by at most one inactive row.
-        while (y + 1 < height && !activeRows[y] && activeRows[y + 1]) {
-            y++
-            while (y < height && activeRows[y]) y++
-            endY = y - 1
-        }
-
-        var bestY = startY
-        for (yy in startY..endY) {
-            if (rowScores[yy] > rowScores[bestY]) bestY = yy
-        }
-        candidates.add(bestY)
-    }
-
-    if (candidates.size < 5) return emptyList()
-
-    data class Staff(val top: Float, val bottom: Float, val spacing: Float, val lines: List<Int>)
-
-    /*
-     * Find the most plausible five-line groups rather than greedily consuming
-     * every next five candidates. Candidate gaps should be approximately
-     * uniform, but some perspective and print variation is accepted.
-     */
-    val staffCandidates = mutableListOf<Staff>()
-    var i = 0
-    while (i <= candidates.size - 5) {
-        val five = candidates.subList(i, i + 5)
-        val gaps = (0 until 4).map { five[it + 1] - five[it] }
-        val avgGap = gaps.average().toFloat()
-        val maxGap = gaps.maxOrNull() ?: 0
-        val minGap = gaps.minOrNull() ?: 0
-        val regular = avgGap in 2.0f..36.0f &&
-                gaps.all { it >= avgGap * 0.45f && it <= avgGap * 1.75f } &&
-                (maxGap - minGap) <= max(6.0f, avgGap * 0.95f)
-
-        if (regular) {
-            val top = (five.first() - avgGap / 2f).coerceAtLeast(0f)
-            val bottom = (five.last() + avgGap / 2f).coerceAtMost(height.toFloat())
-            val candidate = Staff(top, bottom, avgGap, five.toList())
-
-            // Avoid duplicate detections that share most of the same lines.
-            val duplicateIndex = staffCandidates.indexOfFirst { existing ->
-                existing.lines.intersect(candidate.lines.toSet()).size >= 3
+        val active = BooleanArray(projection.size) { projection[it] >= minimumLineSupport }
+        val peaks = mutableListOf<Pair<Int, Int>>()
+        var i = 0
+        while (i < active.size) {
+            if (!active[i]) {
+                i++
+                continue
             }
-            if (duplicateIndex >= 0) {
-                val existing = staffCandidates[duplicateIndex]
-                val oldScore = existing.lines.sumOf { rowScores[it] }
-                val newScore = candidate.lines.sumOf { rowScores[it] }
-                if (newScore > oldScore) staffCandidates[duplicateIndex] = candidate
-            } else {
-                staffCandidates.add(candidate)
+            val start = i
+            while (i < active.size && active[i]) i++
+            val end = i - 1
+
+            // Keep the strongest bin in a small cluster of adjacent bins.
+            var best = start
+            for (j in start..end) {
+                if (projection[j] > projection[best]) best = j
             }
-            i += 1
-        } else {
-            i++
+            peaks.add((best - padding) to projection[best])
         }
+        projections.add(Projection(slope, peaks))
     }
 
-    if (staffCandidates.isEmpty()) return emptyList()
+    fun groupsFor(projection: Projection): List<Staff> {
+        val peaks = projection.peaks.sortedBy { it.first }
+        if (peaks.size < 5) return emptyList()
 
-    val staffs = staffCandidates.sortedBy { it.top }
+        val groups = mutableListOf<Staff>()
+        for (i in 0..peaks.size - 5) {
+            val five = peaks.subList(i, i + 5)
+            val centers = five.map { it.first }
+            val gaps = (0 until 4).map { centers[it + 1] - centers[it] }
+            val averageGap = gaps.average().toFloat()
+            if (averageGap !in 2f..38f) continue
 
-    // Determine horizontal bounds from dark pixels in detected staff bands.
-    // Ignore isolated specks by using per-column hit counts rather than a
-    // single extreme pixel.
+            // Allow uneven printing and perspective, but reject groups with
+            // one implausibly large gap that usually separates two staves.
+            if (gaps.any { it < averageGap * 0.48f || it > averageGap * 1.65f }) continue
+            val spread = (gaps.maxOrNull() ?: 0) - (gaps.minOrNull() ?: 0)
+            if (spread > max(5f, averageGap * 0.85f)) continue
+
+            val support = five.sumOf { it.second }
+            val regularityPenalty = gaps.sumOf { abs(it - averageGap).toDouble() }.toFloat()
+            val score = (support - regularityPenalty * width * 0.10f).toInt()
+            val top = centers.first() - averageGap / 2f
+            val bottom = centers.last() + averageGap / 2f
+            groups.add(
+                Staff(
+                    top = top.coerceAtLeast(0f),
+                    bottom = bottom.coerceAtMost(height.toFloat()),
+                    spacing = averageGap,
+                    slope = projection.slope,
+                    support = score,
+                    lineCenters = centers
+                )
+            )
+        }
+        return groups
+    }
+
+    // Prefer angles which explain several strong, regular five-line groups.
+    val candidatesByAngle = projections.map { projection ->
+        val groups = groupsFor(projection)
+        val sorted = groups.sortedByDescending { it.support }
+        val accepted = mutableListOf<Staff>()
+        for (candidate in sorted) {
+            val overlaps = accepted.any { existing ->
+                val sharedLines = existing.lineCenters.count { it in candidate.lineCenters }
+                val verticalOverlap = min(existing.bottom, candidate.bottom) -
+                    max(existing.top, candidate.top)
+                sharedLines >= 2 || verticalOverlap > min(
+                    existing.bottom - existing.top,
+                    candidate.bottom - candidate.top
+                ) * 0.55f
+            }
+            if (!overlaps) accepted.add(candidate)
+        }
+        projection.slope to accepted.sortedBy { it.top }
+    }
+
+    val best = candidatesByAngle.maxByOrNull { (_, staffs) ->
+        // Count matters, but reward strong candidates so text lines do not win
+        // merely because they form many weak combinations.
+        staffs.sumOf { it.support.toLong() } + staffs.size * width.toLong() * 2L
+    } ?: return emptyList()
+    val slope = best.first
+    val staffs = best.second
+    if (staffs.isEmpty()) return emptyList()
+
+    // Determine content bounds robustly. A column must contain dark pixels in
+    // several detected staff bands; a single speck cannot extend the red edge.
     val columnHits = IntArray(width)
     for (staff in staffs) {
-        val fromY = staff.top.toInt().coerceIn(0, height - 1)
-        val toY = staff.bottom.toInt().coerceIn(fromY + 1, height)
+        val fromY = (staff.top - staff.spacing).toInt().coerceIn(0, height - 1)
+        val toY = (staff.bottom + staff.spacing).toInt().coerceIn(fromY + 1, height)
         for (yy in fromY until toY) {
             val offset = yy * width
             for (x in 0 until width) {
@@ -212,14 +219,13 @@ private fun detectStaffBoundaryStrokes(
     }
 
     val totalBandRows = staffs.sumOf {
-        (it.bottom.toInt() - it.top.toInt()).coerceAtLeast(1)
+        (it.bottom - it.top + it.spacing * 2f).toInt().coerceAtLeast(1)
     }
-    val columnThreshold = (totalBandRows * 0.008f).toInt().coerceAtLeast(2)
+    val columnThreshold = (totalBandRows * 0.006f).toInt().coerceAtLeast(2)
     var minX = 0
     while (minX < width && columnHits[minX] < columnThreshold) minX++
     var maxX = width - 1
     while (maxX >= 0 && columnHits[maxX] < columnThreshold) maxX--
-
     if (minX >= maxX) return emptyList()
 
     val scale = displayWidthPx / width.toFloat()
@@ -228,16 +234,23 @@ private fun detectStaffBoundaryStrokes(
     val rightX = (maxX + width * 0.006f).coerceAtMost(width.toFloat()) * scale
     val green = android.graphics.Color.rgb(0, 220, 40).toLong()
     val red = android.graphics.Color.rgb(240, 35, 35).toLong()
-
     val result = mutableListOf<AnnotationStroke>()
-    // Deliberately keep every five-line staff separate. Piano grand-staff
-    // pairing is disabled until individual staff detection is reliable.
+
+    fun yAtX(lineCenterAtImageCenter: Float, x: Float): Float =
+        (lineCenterAtImageCenter + slope * (x - centerX)) * scale
+
+    // Each five-line staff is marked separately. Sloped endpoints help the
+    // green boundaries follow photographed pages instead of cutting across
+    // the staff at a fixed screen y-coordinate.
     for (staff in staffs) {
-        val topY = (staff.top * scale).coerceIn(0f, displayHeight)
-        val bottomY = (staff.bottom * scale).coerceIn(0f, displayHeight)
+        val topLeft = yAtX(staff.top, 0f).coerceIn(0f, displayHeight)
+        val topRight = yAtX(staff.top, width.toFloat()).coerceIn(0f, displayHeight)
+        val bottomLeft = yAtX(staff.bottom, 0f).coerceIn(0f, displayHeight)
+        val bottomRight = yAtX(staff.bottom, width.toFloat()).coerceIn(0f, displayHeight)
+
         result.add(
             AnnotationStroke(
-                points = listOf(DrawingPoint(leftX, topY), DrawingPoint(rightX, topY)),
+                points = listOf(DrawingPoint(leftX, topLeft), DrawingPoint(rightX, topRight)),
                 color = green,
                 strokeWidth = 3.5f,
                 isEraser = false
@@ -245,7 +258,7 @@ private fun detectStaffBoundaryStrokes(
         )
         result.add(
             AnnotationStroke(
-                points = listOf(DrawingPoint(leftX, bottomY), DrawingPoint(rightX, bottomY)),
+                points = listOf(DrawingPoint(leftX, bottomLeft), DrawingPoint(rightX, bottomRight)),
                 color = green,
                 strokeWidth = 3.5f,
                 isEraser = false
@@ -253,9 +266,14 @@ private fun detectStaffBoundaryStrokes(
         )
     }
 
+    val topY = yAtX(staffs.first().top, minX.toFloat()).coerceIn(0f, displayHeight)
+    val bottomY = yAtX(staffs.last().bottom, minX.toFloat()).coerceIn(0f, displayHeight)
+    val topRightY = yAtX(staffs.first().top, maxX.toFloat()).coerceIn(0f, displayHeight)
+    val bottomRightY = yAtX(staffs.last().bottom, maxX.toFloat()).coerceIn(0f, displayHeight)
+
     result.add(
         AnnotationStroke(
-            points = listOf(DrawingPoint(leftX, staffs.first().top * scale), DrawingPoint(leftX, staffs.last().bottom * scale)),
+            points = listOf(DrawingPoint(leftX, topY), DrawingPoint(leftX, bottomY)),
             color = red,
             strokeWidth = 3.5f,
             isEraser = false
@@ -263,7 +281,7 @@ private fun detectStaffBoundaryStrokes(
     )
     result.add(
         AnnotationStroke(
-            points = listOf(DrawingPoint(rightX, staffs.first().top * scale), DrawingPoint(rightX, staffs.last().bottom * scale)),
+            points = listOf(DrawingPoint(rightX, topRightY), DrawingPoint(rightX, bottomRightY)),
             color = red,
             strokeWidth = 3.5f,
             isEraser = false
