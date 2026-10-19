@@ -204,4 +204,36 @@
     <string name="tutorial_next">Next</string>
     <string name="tutorial_prev">Back</string>
     <string name="tutorial_finish">Get Started!</string>
+
+    <!-- Sheet Music & Annotations -->
+    <string name="sheet_music_header">SHEET MUSIC &amp; PDF</string>
+    <string name="add_sheet_file">Add Sheet File</string>
+    <string name="no_sheet_files">No sheet files added yet.</string>
+    <string name="view_sheet_music">View &amp; Edit Sheet Music</string>
+    <string name="sheet_viewer_title">Sheet Music &amp; Annotations</string>
+    <string name="tool_pen">Pen</string>
+    <string name="tool_scroll">Scroll</string>
+    <string name="tool_section_select">Section</string>
+    <string name="create_section_title">Create Section</string>
+    <string name="section_name_label">Section Name</string>
+    <string name="section_start_bar">Start Bar</string>
+    <string name="section_end_bar">End Bar</string>
+    <string name="tool_highlighter">Highlighter</string>
+    <string name="tool_eraser">Eraser</string>
+    <string name="tool_undo">Undo</string>
+    <string name="tool_clear">Clear Page</string>
+    <string name="auto_scroll">Auto Scroll</string>
+    <string name="scroll_speed">Speed</string>
+
+    <!-- Database Export & Import -->
+    <string name="export_import_header">BACKUP (EXPORT &amp; IMPORT)</string>
+    <string name="export_repertoire">Export Repertoire Database</string>
+    <string name="import_repertoire">Import Repertoire Database</string>
+    <string name="export_chords">Export Chord Database</string>
+    <string name="import_chords">Import Chord Database</string>
+    <string name="export_success">Database successfully exported</string>
+    <string name="import_success">Database imported! Please restart app.</string>
+    <string name="export_error">Export failed</string>
+    <string name="import_error">Import failed</string>
+    <string name="start_practice_session">Start Practice</string>
 </resources>

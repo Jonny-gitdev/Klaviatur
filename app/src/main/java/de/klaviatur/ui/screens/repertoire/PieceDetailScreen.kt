@@ -1,5 +1,11 @@
 package de.klaviatur.ui.screens.repertoire
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,17 +16,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,6 +34,8 @@ import de.klaviatur.R
 import de.klaviatur.data.model.Piece
 import de.klaviatur.data.model.PieceSection
 import de.klaviatur.data.model.ProgressLevel
+import de.klaviatur.data.model.SheetFile
+import de.klaviatur.data.model.SheetFileType
 import de.klaviatur.data.model.TempoEntry
 import de.klaviatur.ui.components.BarProgress
 import de.klaviatur.ui.components.DifficultyDots
@@ -47,6 +52,7 @@ fun PieceDetailScreen(
     pieceId: Long,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onOpenSheetViewer: (Long) -> Unit = {},
     onStartPractice: (Piece) -> Unit = {},
     viewModel: RepertoireViewModel = hiltViewModel()
 ) {
@@ -240,7 +246,7 @@ fun PieceDetailScreen(
             }
 
             // Progress
-            if (piece.totalBars > 0) {
+            if (piece.totalBars > 0 || piece.sections.isNotEmpty()) {
                 item {
                     Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                         Column(Modifier.padding(16.dp)) {
@@ -314,6 +320,90 @@ fun PieceDetailScreen(
                                     if (idx < piece.sections.size - 1) {
                                         HorizontalDivider(color = BorderColor, thickness = 0.5.dp)
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Sheet Music & PDFs
+            item {
+                val context = LocalContext.current
+                val documentLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.OpenDocument()
+                ) { uri ->
+                    if (uri != null) {
+                        try {
+                            context.contentResolver.takePersistableUriPermission(
+                                uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            )
+                        } catch (_: Exception) {}
+
+                        val mime = context.contentResolver.getType(uri) ?: ""
+                        val type = if (mime.contains("pdf", ignoreCase = true)) SheetFileType.PDF else SheetFileType.IMAGE
+                        val name = getFileName(context, uri) ?: "Noten"
+                        val newFile = SheetFile(uriString = uri.toString(), name = name, type = type)
+                        viewModel.updateSheetFiles(piece, piece.sheetFiles + newFile)
+                    }
+                }
+
+                Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.sheet_music_header), style = MaterialTheme.typography.labelSmall)
+                            TextButton(onClick = {
+                                documentLauncher.launch(arrayOf("application/pdf", "image/*"))
+                            }, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                                Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp), tint = ForestGreen)
+                                Spacer(Modifier.width(4.dp))
+                                Text(stringResource(R.string.add_sheet_file), fontSize = 12.sp, color = ForestGreen)
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        if (piece.sheetFiles.isEmpty()) {
+                            Text(stringResource(R.string.no_sheet_files), style = MaterialTheme.typography.bodySmall, color = TextHint)
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                piece.sheetFiles.forEach { sheet ->
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(PaperBeige)
+                                            .padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                            Icon(
+                                                imageVector = if (sheet.type == SheetFileType.PDF) Icons.Default.Description else Icons.Default.Image,
+                                                contentDescription = null,
+                                                tint = ForestGreen,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                            Text(sheet.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                                        }
+                                        IconButton(onClick = {
+                                            val updated = piece.sheetFiles.filter { it.id != sheet.id }
+                                            viewModel.updateSheetFiles(piece, updated)
+                                        }) {
+                                            Icon(Icons.Default.Delete, stringResource(R.string.action_delete), tint = TextHint, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+                                Button(
+                                    onClick = { onOpenSheetViewer(piece.id) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = ForestGreen)
+                                ) {
+                                    Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(stringResource(R.string.view_sheet_music))
                                 }
                             }
                         }
@@ -501,4 +591,29 @@ fun SectionEditDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
+}
+
+private fun getFileName(context: Context, uri: Uri): String? {
+    var result: String? = null
+    if (uri.scheme == "content") {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx != -1) {
+                    result = cursor.getString(idx)
+                }
+            }
+        } finally {
+            cursor?.close()
+        }
+    }
+    if (result == null) {
+        result = uri.path
+        val cut = result?.lastIndexOf('/')
+        if (cut != null && cut != -1) {
+            result = result.substring(cut + 1)
+        }
+    }
+    return result
 }

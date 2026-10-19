@@ -61,6 +61,14 @@ class RepertoireViewModel @Inject constructor(
     fun upsertPiece(piece: Piece) = viewModelScope.launch { repo.upsert(piece) }
     fun deletePiece(piece: Piece) = viewModelScope.launch { repo.delete(piece) }
 
+    fun updateSheetFiles(piece: Piece, sheetFiles: List<SheetFile>) = viewModelScope.launch {
+        repo.upsert(piece.copy(sheetFiles = sheetFiles))
+    }
+
+    fun updatePageAnnotations(piece: Piece, annotations: List<PageAnnotation>) = viewModelScope.launch {
+        repo.upsert(piece.copy(pageAnnotations = annotations))
+    }
+
     fun addTempoEntry(piece: Piece, entry: TempoEntry) = viewModelScope.launch {
         repo.addTempoEntry(piece, entry)
     }

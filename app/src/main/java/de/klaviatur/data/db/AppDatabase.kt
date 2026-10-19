@@ -10,7 +10,7 @@ import de.klaviatur.data.model.PracticeSession
 
 @Database(
     entities = [Piece::class, PracticeSession::class, PieceList::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

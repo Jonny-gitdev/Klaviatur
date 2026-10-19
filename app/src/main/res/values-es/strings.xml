@@ -204,4 +204,36 @@
     <string name="tutorial_next">Siguiente</string>
     <string name="tutorial_prev">Anterior</string>
     <string name="tutorial_finish">¡Empezar!</string>
+
+    <!-- Sheet Music & Annotations -->
+    <string name="sheet_music_header">PARTITURAS Y PDF</string>
+    <string name="add_sheet_file">Añadir archivo de partitura</string>
+    <string name="no_sheet_files">Aún no hay partituras guardadas.</string>
+    <string name="view_sheet_music">Ver y editar partituras</string>
+    <string name="sheet_viewer_title">Partituras y anotaciones</string>
+    <string name="tool_pen">Bolígrafo</string>
+    <string name="tool_scroll">Desplazar</string>
+    <string name="tool_section_select">Sección</string>
+    <string name="create_section_title">Crear sección</string>
+    <string name="section_name_label">Nombre de sección</string>
+    <string name="section_start_bar">Compás inicial</string>
+    <string name="section_end_bar">Compás final</string>
+    <string name="tool_highlighter">Resaltador</string>
+    <string name="tool_eraser">Borrador</string>
+    <string name="tool_undo">Deshacer</string>
+    <string name="tool_clear">Borrar página</string>
+    <string name="auto_scroll">Desplazamiento autom.</string>
+    <string name="scroll_speed">Velocidad</string>
+
+    <!-- Database Export & Import -->
+    <string name="export_import_header">RESPALDO (EXPORTACIÓN E IMPORTACIÓN)</string>
+    <string name="export_repertoire">Exportar base de datos de repertorio</string>
+    <string name="import_repertoire">Importar base de datos de repertorio</string>
+    <string name="export_chords">Exportar base de datos de acordes</string>
+    <string name="import_chords">Importar base de datos de acordes</string>
+    <string name="export_success">Base de datos exportada con éxito</string>
+    <string name="import_success">¡Base de datos importada! Por favor reinicie la app.</string>
+    <string name="export_error">Error en la exportación</string>
+    <string name="import_error">Error en la importación</string>
+    <string name="start_practice_session">Iniciar práctica</string>
 </resources>

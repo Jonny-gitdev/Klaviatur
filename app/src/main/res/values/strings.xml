@@ -204,4 +204,36 @@
     <string name="tutorial_next">Weiter</string>
     <string name="tutorial_prev">Zurück</string>
     <string name="tutorial_finish">Los geht\'s!</string>
+
+    <!-- Sheet Music & Annotations -->
+    <string name="sheet_music_header">NOTENBLÄTTER &amp; PDF</string>
+    <string name="add_sheet_file">Noten-Datei hinzufügen</string>
+    <string name="no_sheet_files">Noch keine Noten-Dateien hinterlegt.</string>
+    <string name="view_sheet_music">Noten anzeigen &amp; bearbeiten</string>
+    <string name="sheet_viewer_title">Noten &amp; Annotationen</string>
+    <string name="tool_pen">Stift</string>
+    <string name="tool_scroll">Scrollen</string>
+    <string name="tool_section_select">Abschnitt</string>
+    <string name="create_section_title">Abschnitt erstellen</string>
+    <string name="section_name_label">Name des Abschnitts</string>
+    <string name="section_start_bar">Von Takt</string>
+    <string name="section_end_bar">Bis Takt</string>
+    <string name="tool_highlighter">Textmarker</string>
+    <string name="tool_eraser">Radierer</string>
+    <string name="tool_undo">Rückgängig</string>
+    <string name="tool_clear">Seite leeren</string>
+    <string name="auto_scroll">Autom. Scrollen</string>
+    <string name="scroll_speed">Geschwindigkeit</string>
+
+    <!-- Database Export & Import -->
+    <string name="export_import_header">DATENSICHERUNG (EXPORT &amp; IMPORT)</string>
+    <string name="export_repertoire">Repertoire-Datenbank exportieren</string>
+    <string name="import_repertoire">Repertoire-Datenbank importieren</string>
+    <string name="export_chords">Akkord-Datenbank exportieren</string>
+    <string name="import_chords">Akkord-Datenbank importieren</string>
+    <string name="export_success">Datenbank erfolgreich exportiert</string>
+    <string name="import_success">Datenbank importiert! Bitte App neu starten.</string>
+    <string name="export_error">Fehler beim Exportieren</string>
+    <string name="import_error">Fehler beim Importieren</string>
+    <string name="start_practice_session">Übung starten</string>
 </resources>

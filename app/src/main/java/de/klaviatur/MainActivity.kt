@@ -45,6 +45,7 @@ import de.klaviatur.ui.screens.lists.ListsScreen
 import de.klaviatur.ui.screens.repertoire.AddEditPieceScreen
 import de.klaviatur.ui.screens.repertoire.PieceDetailScreen
 import de.klaviatur.ui.screens.repertoire.RepertoireScreen
+import de.klaviatur.ui.screens.repertoire.SheetViewerScreen
 import de.klaviatur.ui.screens.sessions.AddSessionScreen
 import de.klaviatur.ui.screens.sessions.PracticeModeScreen
 import de.klaviatur.ui.screens.sessions.SessionViewModel
@@ -244,6 +245,21 @@ private fun KlaviaturAppUI(metronomeManager: MetronomeManager) {
                     pieceId = pieceId,
                     onBack = { navController.popBackStack() },
                     onEdit = { navController.navigate(Screen.AddEditPiece.route(pieceId)) },
+                    onOpenSheetViewer = { id -> navController.navigate(Screen.SheetViewer.route(id)) },
+                    onStartPractice = { piece ->
+                        sessionViewModel.startSession(piece)
+                        navController.navigate(Screen.PracticeMode.route)
+                    }
+                )
+            }
+            composable(
+                route = Screen.SheetViewer.route,
+                arguments = listOf(navArgument("pieceId") { type = NavType.LongType })
+            ) { backStack ->
+                val pieceId = backStack.arguments?.getLong("pieceId") ?: return@composable
+                SheetViewerScreen(
+                    pieceId = pieceId,
+                    onBack = { navController.popBackStack() },
                     onStartPractice = { piece ->
                         sessionViewModel.startSession(piece)
                         navController.navigate(Screen.PracticeMode.route)

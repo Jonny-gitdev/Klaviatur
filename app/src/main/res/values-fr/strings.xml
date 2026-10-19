@@ -204,4 +204,36 @@
     <string name="tutorial_next">Suivant</string>
     <string name="tutorial_prev">Précédent</string>
     <string name="tutorial_finish">C\'est parti !</string>
+
+    <!-- Sheet Music & Annotations -->
+    <string name="sheet_music_header">PARTITIONS &amp; PDF</string>
+    <string name="add_sheet_file">Ajouter un fichier de partition</string>
+    <string name="no_sheet_files">Aucune partition enregistrée.</string>
+    <string name="view_sheet_music">Afficher &amp; éditer les partitions</string>
+    <string name="sheet_viewer_title">Partitions &amp; Annotations</string>
+    <string name="tool_pen">Stylo</string>
+    <string name="tool_scroll">Défiler</string>
+    <string name="tool_section_select">Section</string>
+    <string name="create_section_title">Créer une section</string>
+    <string name="section_name_label">Nom de section</string>
+    <string name="section_start_bar">Mesure début</string>
+    <string name="section_end_bar">Mesure fin</string>
+    <string name="tool_highlighter">Surligneur</string>
+    <string name="tool_eraser">Gomme</string>
+    <string name="tool_undo">Annuler</string>
+    <string name="tool_clear">Effacer la page</string>
+    <string name="auto_scroll">Défilement auto.</string>
+    <string name="scroll_speed">Vitesse</string>
+
+    <!-- Database Export & Import -->
+    <string name="export_import_header">SAUVEGARDE (EXPORT &amp; IMPORT)</string>
+    <string name="export_repertoire">Exporter la base de données du répertoire</string>
+    <string name="import_repertoire">Importer la base de données du répertoire</string>
+    <string name="export_chords">Exporter la base de données des accords</string>
+    <string name="import_chords">Importer la base de données des accords</string>
+    <string name="export_success">Base de données exportée avec succès</string>
+    <string name="import_success">Base de données importée ! Veuillez relancer l\'app.</string>
+    <string name="export_error">Échec de l\'exportation</string>
+    <string name="import_error">Échec de l\'importation</string>
+    <string name="start_practice_session">Démarrer la pratique</string>
 </resources>

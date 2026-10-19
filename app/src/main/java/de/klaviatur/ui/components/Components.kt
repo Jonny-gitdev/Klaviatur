@@ -96,10 +96,11 @@ fun DifficultyDots(difficulty: Int, modifier: Modifier = Modifier) {
 
 @Composable
 fun BarProgress(sections: List<PieceSection>, totalBars: Int, modifier: Modifier = Modifier) {
-    if (totalBars <= 0) return
+    val effectiveTotal = if (totalBars > 0) totalBars else 100
+    if (sections.isEmpty()) return
 
     val safeBars = sections.filter { it.level == ProgressLevel.SAFE }.sumOf { it.endBar - it.startBar + 1 }
-    val safeFrac = (safeBars.toFloat() / totalBars).coerceIn(0f, 1f)
+    val safeFrac = (safeBars.toFloat() / effectiveTotal).coerceIn(0f, 1f)
 
     Column(modifier) {
         Row(
@@ -120,8 +121,8 @@ fun BarProgress(sections: List<PieceSection>, totalBars: Int, modifier: Modifier
             drawRect(color = LevelGray)
 
             sections.forEach { section ->
-                val start = ((section.startBar - 1).toFloat() / totalBars).coerceIn(0f, 1f) * size.width
-                val end = (section.endBar.toFloat() / totalBars).coerceIn(0f, 1f) * size.width
+                val start = ((section.startBar - 1).toFloat() / effectiveTotal).coerceIn(0f, 1f) * size.width
+                val end = (section.endBar.toFloat() / effectiveTotal).coerceIn(0f, 1f) * size.width
                 if (end > start) {
                     drawRect(
                         color = Color(section.level.color),
@@ -198,7 +199,7 @@ fun PieceCard(piece: Piece, onClick: () -> Unit, modifier: Modifier = Modifier) 
                 StatusBadge(piece.status)
             }
 
-            if (piece.totalBars > 0) {
+            if (piece.totalBars > 0 || piece.sections.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))
                 BarProgress(piece.sections, piece.totalBars)
             }

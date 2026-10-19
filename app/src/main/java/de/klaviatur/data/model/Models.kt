@@ -6,6 +6,7 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.util.UUID
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
@@ -79,7 +80,46 @@ class Converters {
         gson.toJson(list)
     @TypeConverter fun jsonToSectionList(json: String): List<PieceSection> =
         gson.fromJson(json, object : TypeToken<List<PieceSection>>() {}.type) ?: emptyList()
+
+    @TypeConverter fun sheetFileListToJson(list: List<SheetFile>): String = gson.toJson(list)
+    @TypeConverter fun jsonToSheetFileList(json: String): List<SheetFile> =
+        gson.fromJson(json, object : TypeToken<List<SheetFile>>() {}.type) ?: emptyList()
+
+    @TypeConverter fun pageAnnotationListToJson(list: List<PageAnnotation>): String = gson.toJson(list)
+    @TypeConverter fun jsonToPageAnnotationList(json: String): List<PageAnnotation> =
+        gson.fromJson(json, object : TypeToken<List<PageAnnotation>>() {}.type) ?: emptyList()
 }
+
+// ── Sheet Music Models ────────────────────────────────────────────────────────
+
+enum class SheetFileType {
+    PDF, IMAGE
+}
+
+data class SheetFile(
+    val id: String = UUID.randomUUID().toString(),
+    val uriString: String,
+    val name: String,
+    val type: SheetFileType
+)
+
+data class DrawingPoint(
+    val x: Float,
+    val y: Float
+)
+
+data class AnnotationStroke(
+    val points: List<DrawingPoint>,
+    val color: Long,
+    val strokeWidth: Float,
+    val isEraser: Boolean = false
+)
+
+data class PageAnnotation(
+    val sheetFileId: String,
+    val pageIndex: Int,
+    val strokes: List<AnnotationStroke> = emptyList()
+)
 
 // ── Entities ──────────────────────────────────────────────────────────────────
 
@@ -99,6 +139,8 @@ data class Piece(
     val difficulty: Int = 1,           // 1–5
     val notes: String = "",
     val tempoLog: List<TempoEntry> = emptyList(),
+    val sheetFiles: List<SheetFile> = emptyList(),
+    val pageAnnotations: List<PageAnnotation> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val lastPracticedAt: Long? = null
 )

@@ -12,6 +12,9 @@ sealed class Screen(val route: String) {
     object PieceDetail : Screen("piece/{pieceId}") {
         fun route(id: Long) = "piece/$id"
     }
+    object SheetViewer : Screen("sheet_viewer/{pieceId}") {
+        fun route(id: Long) = "sheet_viewer/$id"
+    }
     object AddEditPiece : Screen("piece_edit?pieceId={pieceId}") {
         fun route(id: Long? = null) = if (id != null) "piece_edit?pieceId=$id" else "piece_edit"
     }
