@@ -98,6 +98,52 @@ private fun detectStaffBoundaryStrokes(
      */
     data class Projection(val slope: Float, val peaks: List<Pair<Int, Int>>)
     val centerX = (width - 1) / 2f
+
+    // --- Nur dünne Strukturen (Notenlinien) behalten -------------------------
+    // Notenköpfe, Hälse, Balken und Text sind vertikal dicker als eine Linie.
+    val dark = BooleanArray(width * height) { isDark(pixels[it]) }
+
+    // Typische Linienstärke = häufigste vertikale Lauflänge (Linien dominieren).
+    val runHistogram = IntArray(16)
+    for (x in 0 until width) {
+        var y = 0
+        while (y < height) {
+            if (!dark[y * width + x]) { y++; continue }
+            val start = y
+            while (y < height && dark[y * width + x]) y++
+            val len = y - start
+            if (len < runHistogram.size) runHistogram[len]++
+        }
+    }
+    var lineThickness = 1
+    for (len in 1 until runHistogram.size) {
+        if (runHistogram[len] > runHistogram[lineThickness]) lineThickness = len
+    }
+    val maxRun = (lineThickness * 3 / 2 + 1).coerceIn(3, 8)
+
+    val thin = BooleanArray(width * height)
+    var thinCount = 0
+    for (x in 0 until width) {
+        var y = 0
+        while (y < height) {
+            if (!dark[y * width + x]) { y++; continue }
+            val start = y
+            while (y < height && dark[y * width + x]) y++
+            if (y - start <= maxRun) {
+                for (yy in start until y) thin[yy * width + x] = true
+                thinCount += y - start
+            }
+        }
+    }
+    val thinXs = IntArray(thinCount)
+    val thinYs = IntArray(thinCount)
+    var n = 0
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            if (thin[y * width + x]) { thinXs[n] = x; thinYs[n] = y; n++ }
+        }
+    }
+
     val projections = mutableListOf<Projection>()
     val angleSteps = (-8..8).map { it * 0.01f } // approximately +/- 4.6 degrees
     val minimumLineSupport = (width * 0.14f).toInt().coerceAtLeast(30)
@@ -106,34 +152,31 @@ private fun detectStaffBoundaryStrokes(
         val padding = (kotlin.math.abs(slope) * width / 2f).toInt() + 4
         val projection = IntArray(height + padding * 2 + 2)
 
-        for (y in 0 until height) {
-            val rowOffset = y * width
-            for (x in 0 until width) {
-                if (isDark(pixels[rowOffset + x])) {
-                    val alignedY = (y - slope * (x - centerX)).toInt() + padding
-                    if (alignedY in projection.indices) projection[alignedY]++
-                }
-            }
+        for (k in 0 until thinCount) {
+            val alignedY = Math.round(thinYs[k] - slope * (thinXs[k] - centerX)) + padding
+            if (alignedY in projection.indices) projection[alignedY]++
         }
 
         val active = BooleanArray(projection.size) { projection[it] >= minimumLineSupport }
         val peaks = mutableListOf<Pair<Int, Int>>()
         var i = 0
         while (i < active.size) {
-            if (!active[i]) {
-                i++
-                continue
-            }
+            if (!active[i]) { i++; continue }
             val start = i
             while (i < active.size && active[i]) i++
             val end = i - 1
 
-            // Keep the strongest bin in a small cluster of adjacent bins.
+            // Position = Schwerpunkt des Clusters, Stärke = stärkstes Bin.
             var best = start
+            var weighted = 0L
+            var total = 0L
             for (j in start..end) {
                 if (projection[j] > projection[best]) best = j
+                weighted += j.toLong() * projection[j]
+                total += projection[j]
             }
-            peaks.add((best - padding) to projection[best])
+            val centroid = Math.round(weighted.toDouble() / total).toInt()
+            peaks.add((centroid - padding) to projection[best])
         }
         projections.add(Projection(slope, peaks))
     }
@@ -184,7 +227,7 @@ private fun detectStaffBoundaryStrokes(
             val overlaps = accepted.any { existing ->
                 val sharedLines = existing.lineCenters.count { it in candidate.lineCenters }
                 val verticalOverlap = min(existing.bottom, candidate.bottom) -
-                    max(existing.top, candidate.top)
+                        max(existing.top, candidate.top)
                 sharedLines >= 2 || verticalOverlap > min(
                     existing.bottom - existing.top,
                     candidate.bottom - candidate.top
@@ -234,133 +277,294 @@ private fun detectStaffBoundaryStrokes(
     val rightX = (maxX + width * 0.006f).coerceAtMost(width.toFloat()) * scale
     val green = android.graphics.Color.rgb(0, 220, 40).toLong()
     val red = android.graphics.Color.rgb(240, 35, 35).toLong()
+    val blue = android.graphics.Color.rgb(35, 125, 245).toLong()
+
     val result = mutableListOf<AnnotationStroke>()
 
     fun yAtX(lineCenterAtImageCenter: Float, x: Float): Float =
         (lineCenterAtImageCenter + slope * (x - centerX)) * scale
 
-    // Each five-line staff is marked separately. Sloped endpoints help the
-    // green boundaries follow photographed pages instead of cutting across
-    // the staff at a fixed screen y-coordinate.
-    for (staff in staffs) {
-        val topLeft = yAtX(staff.top, 0f).coerceIn(0f, displayHeight)
-        val topRight = yAtX(staff.top, width.toFloat()).coerceIn(0f, displayHeight)
-        val bottomLeft = yAtX(staff.bottom, 0f).coerceIn(0f, displayHeight)
-        val bottomRight = yAtX(staff.bottom, width.toFloat()).coerceIn(0f, displayHeight)
+    // --- Klaviersysteme bilden -------------------------------------------------
+    // Zwei übereinanderliegende Notensysteme (rechte + linke Hand) gehören zusammen.
+    // Der Abstand innerhalb eines Systems ist kleiner als der zur nächsten Zeile.
+    data class PianoSystem(val top: Float, val bottom: Float, val staves: List<Staff>)
+
+    val systems = mutableListOf<PianoSystem>()
+    var s = 0
+    while (s < staffs.size) {
+        val upper = staffs[s]
+        val lower = staffs.getOrNull(s + 1)
+        if (lower != null) {
+            val gapToLower = lower.top - upper.bottom
+            val following = staffs.getOrNull(s + 2)
+            val gapToFollowing =
+                if (following != null) following.top - lower.bottom else Float.MAX_VALUE
+            if (gapToLower <= upper.spacing * 14f && gapToLower < gapToFollowing) {
+                systems.add(PianoSystem(upper.top, lower.bottom, listOf(upper, lower)))
+                s += 2
+                continue
+            }
+        }
+        // Einzelnes System ohne Partner (z. B. Erkennung eines Systems fehlgeschlagen)
+        systems.add(PianoSystem(upper.top, upper.bottom, listOf(upper)))
+        s += 1
+    }
+
+    // Grüne Ober-/Unterkante pro Klaviersystem (beide Hände zusammen)
+    for (system in systems) {
+        val topLeft = yAtX(system.top, 0f).coerceIn(0f, displayHeight)
+        val topRight = yAtX(system.top, width.toFloat()).coerceIn(0f, displayHeight)
+        val bottomLeft = yAtX(system.bottom, 0f).coerceIn(0f, displayHeight)
+        val bottomRight = yAtX(system.bottom, width.toFloat()).coerceIn(0f, displayHeight)
 
         result.add(
             AnnotationStroke(
                 points = listOf(DrawingPoint(leftX, topLeft), DrawingPoint(rightX, topRight)),
-                color = green,
-                strokeWidth = 3.5f,
-                isEraser = false
+                color = green, strokeWidth = 3.5f, isEraser = false
             )
         )
         result.add(
             AnnotationStroke(
                 points = listOf(DrawingPoint(leftX, bottomLeft), DrawingPoint(rightX, bottomRight)),
-                color = green,
-                strokeWidth = 3.5f,
-                isEraser = false
+                color = green, strokeWidth = 3.5f, isEraser = false
             )
         )
     }
 
-    /*
-     * Detect measure/bar lines independently inside every staff. A candidate
-     * must contain dark pixels at the midpoint of at least three of the four
-     * inter-line gaps. This is more selective than a generic vertical edge
-     * detector, which would incorrectly mark note stems and stems of chords.
-     */
-    val blue = android.graphics.Color.rgb(35, 125, 245).toLong()
-    for (staff in staffs) {
-        val staffSlope = staff.slope
-        val firstX = (minX + width * 0.012f).toInt().coerceIn(0, width - 1)
-        val lastX = (maxX - width * 0.012f).toInt().coerceIn(firstX, width - 1)
-        val candidateScores = IntArray(width)
+    // --- Taktstriche -------------------------------------------------------------
+    // Ein Taktstrich ist eine lange, dünne, (fast) senkrechte Linie, die ein ganzes
+    // Klaviersystem von der obersten bis zur untersten Notenlinie durchläuft.
+    // Notenhälse sind dafür zu kurz oder ragen über das System hinaus; Notenköpfe,
+    // Balken usw. sitzen immer direkt daneben. Fotos sind oft perspektivisch
+    // verzerrt, daher darf die Linie leicht geneigt sein.
+    val thick = BooleanArray(width * height)    // dunkel, aber keine dünne Notenlinie
+    val thickDil = BooleanArray(width * height) // wie `thick`, horizontal 1 px breiter
+    for (y in 0 until height) {
+        val row = y * width
+        for (x in 0 until width) {
+            if (dark[row + x] && !thin[row + x]) {
+                thick[row + x] = true
+                thickDil[row + x] = true
+                if (x > 0) thickDil[row + x - 1] = true
+                if (x < width - 1) thickDil[row + x + 1] = true
+            }
+        }
+    }
 
-        for (x in firstX..lastX) {
-            var gapHits = 0
-            var verticalSupport = 0
-            for (gapIndex in 0 until 4) {
-                val midpointAligned = (staff.lineCenters[gapIndex] + staff.lineCenters[gapIndex + 1]) / 2f
-                val midpointY = (midpointAligned + staffSlope * (x - centerX)).toInt()
-                var localHits = 0
-                // A small neighborhood accommodates anti-aliasing and slight
-                // blur without allowing nearby noteheads to count too much.
-                for (dx in -1..1) {
-                    for (dy in -1..1) {
-                        val xx = x + dx
-                        val yy = midpointY + dy
-                        if (xx in 0 until width && yy in 0 until height &&
-                            isDark(pixels[yy * width + xx])) {
-                            localHits++
-                        }
-                    }
-                }
-                if (localHits >= 2) {
-                    gapHits++
-                    verticalSupport += localHits
+    class BarCandidate(
+        val x: Int,       // Spalte an der Oberkante
+        val tilt: Float,  // Neigung (Pixel in x pro Pixel in y)
+        val up: Float,    // längster dunkler Lauf über dem Bereich, in Linienabständen
+        val down: Float,  // längster dunkler Lauf unter dem Bereich, in Linienabständen
+        val left: Float,  // Anteil dunkler Pixel direkt links daneben
+        val right: Float  // Anteil dunkler Pixel direkt rechts daneben
+    )
+
+    // Anteil der Zeilen yTop..yBottom, in denen die geneigte Linie auf dickem Pixel liegt.
+    fun lineCoverage(x0: Int, tilt: Float, yTop: Float, yBottom: Float): Float {
+        val y0 = Math.round(yTop)
+        val y1 = Math.round(yBottom)
+        if (y1 <= y0) return 0f
+        var hits = 0
+        for (y in y0..y1) {
+            val xx = Math.round(x0 + tilt * (y - y0))
+            if (y in 0 until height && xx in 0 until width && thickDil[y * width + xx]) hits++
+        }
+        return hits.toFloat() / (y1 - y0 + 1)
+    }
+
+    // Längster zusammenhängender dunkler Lauf entlang der verlängerten Linie.
+    fun longestRun(xc: Int, tilt: Float, yRef: Float, yFrom: Float, yTo: Float): Int {
+        var bestRun = 0
+        var run = 0
+        for (y in Math.round(yFrom)..Math.round(yTo)) {
+            val xx = Math.round(xc + tilt * (y - yRef))
+            if (y in 0 until height && xx in 0 until width && thickDil[y * width + xx]) {
+                run++
+                if (run > bestRun) bestRun = run
+            } else {
+                run = 0
+            }
+        }
+        return bestRun
+    }
+
+    // Anteil dunkler Pixel in einer Spalte neben der Linie (nur für getrennte Hände).
+    fun sideFraction(xc: Int, tilt: Float, yTop: Float, yBottom: Float, offset: Int): Float {
+        val y0 = Math.round(yTop)
+        val y1 = Math.round(yBottom)
+        var hits = 0
+        var total = 0
+        for (y in y0..y1) {
+            val xx = Math.round(xc + tilt * (y - yTop)) + offset
+            total++
+            if (y in 0 until height && xx in 0 until width && thick[y * width + xx]) hits++
+        }
+        return if (total > 0) hits.toFloat() / total else 0f
+    }
+
+    val scanMinX = minX
+    val scanMaxX = maxX
+
+    // Sucht senkrechte Linien, die den Bereich yTopAt..yBottomAt fast vollständig füllen.
+    fun findBars(
+        yTopAt: (Int) -> Float,
+        yBottomAt: (Int) -> Float,
+        spacing: Float
+    ): List<BarCandidate> {
+        val tilts = FloatArray(13) { (it - 6) * 0.01f }
+        val bestCov = FloatArray(width)
+        val bestTilt = FloatArray(width)
+        for (x in scanMinX..scanMaxX) {
+            val yt = yTopAt(x)
+            val yb = yBottomAt(x)
+            for (tilt in tilts) {
+                val c = lineCoverage(x, tilt, yt, yb)
+                if (c > bestCov[x]) {
+                    bestCov[x] = c
+                    bestTilt[x] = tilt
                 }
             }
-            if (gapHits >= 3) candidateScores[x] = gapHits * 10 + verticalSupport
         }
 
-        // Merge adjacent candidate columns into a single barline and retain
-        // the strongest column, avoiding thick duplicate annotations.
-        var x = firstX
-        while (x <= lastX) {
-            if (candidateScores[x] == 0) {
-                x++
-                continue
-            }
-            val runStart = x
-            while (x <= lastX && candidateScores[x] > 0) x++
-            val runEnd = x - 1
-            if (runEnd - runStart > (staff.spacing * 0.55f).toInt().coerceAtLeast(2)) continue
+        val found = mutableListOf<BarCandidate>()
+        var x = scanMinX
+        while (x <= scanMaxX) {
+            if (bestCov[x] < 0.85f) { x++; continue }
+            val a = x
+            while (x <= scanMaxX && bestCov[x] >= 0.85f) x++
+            val b = x - 1
+            // Zu breit: Notenblock, Text o. Ä. (Doppel-/Wiederholungsstriche sind schmaler)
+            if (b - a + 1 > 2.2f * spacing) continue
 
-            var bestX = runStart
-            for (candidateX in runStart..runEnd) {
-                if (candidateScores[candidateX] > candidateScores[bestX]) bestX = candidateX
+            // Position = Mitte der Spalten mit der besten Abdeckung. Dadurch zieht ein
+            // direkt daneben liegendes Zeichen (z. B. Arpeggio) die Linie nicht zur Seite.
+            var maxCov = 0f
+            for (k in a..b) maxCov = max(maxCov, bestCov[k])
+            var first = -1
+            var last = -1
+            for (k in a..b) {
+                if (bestCov[k] >= maxCov - 0.02f) {
+                    if (first < 0) first = k
+                    last = k
+                }
             }
+            val xc = (first + last) / 2
+            val tilt = bestTilt[xc]
+            val yt = yTopAt(xc)
+            val yb = yBottomAt(xc)
 
-            val topAtX = (staff.top + staffSlope * (bestX - centerX)).coerceIn(0f, height.toFloat())
-            val bottomAtX = (staff.bottom + staffSlope * (bestX - centerX)).coerceIn(0f, height.toFloat())
+            val up = longestRun(xc, tilt, yt, yt - 1.2f * spacing, yt - 0.3f * spacing) / spacing
+            val down = longestRun(xc, tilt, yt, yb + 0.3f * spacing, yb + 1.2f * spacing) / spacing
+            val half = (b - a) / 2 + 1
+            val left = max(
+                sideFraction(xc, tilt, yt, yb, -half - 2),
+                sideFraction(xc, tilt, yt, yb, -half - 3)
+            )
+            val right = max(
+                sideFraction(xc, tilt, yt, yb, half + 2),
+                sideFraction(xc, tilt, yt, yb, half + 3)
+            )
+            found.add(BarCandidate(xc, tilt, up, down, left, right))
+        }
+        return found
+    }
+
+    for (system in systems) {
+        val upper = system.staves.first()
+        val lower = system.staves.last()
+        val spacing = upper.spacing
+
+        val topOfUpper = { x: Int -> upper.lineCenters.first() + upper.slope * (x - centerX) }
+        val bottomOfUpper = { x: Int -> upper.lineCenters.last() + upper.slope * (x - centerX) }
+        val topOfLower = { x: Int -> lower.lineCenters.first() + lower.slope * (x - centerX) }
+        val bottomOfLower = { x: Int -> lower.lineCenters.last() + lower.slope * (x - centerX) }
+
+        val maxExtension = 0.45f  // Hälse ragen länger über das System hinaus
+        val maxNeighbour = 0.15f  // Noten direkt neben der Linie => eher ein Hals
+
+        // (x an der Oberkante, Neigung)
+        val bars = mutableListOf<Pair<Float, Float>>()
+
+        // 1) Taktstrich über das ganze Klaviersystem (übliche Notation, durchgehend)
+        for (c in findBars(topOfUpper, bottomOfLower, spacing)) {
+            if (c.up <= maxExtension && c.down <= maxExtension) bars.add(c.x.toFloat() to c.tilt)
+        }
+
+        // 2) Zusätzlich: Taktstriche, die in beiden Händen einzeln vorhanden sind
+        //    (Notation ohne durchgehenden Strich zwischen den Systemen)
+        if (system.staves.size == 2) {
+            val inUpper = findBars(topOfUpper, bottomOfUpper, spacing).filter {
+                it.up <= maxExtension && it.left <= maxNeighbour && it.right <= maxNeighbour
+            }
+            val inLower = findBars(topOfLower, bottomOfLower, spacing).filter {
+                it.down <= maxExtension && it.left <= maxNeighbour && it.right <= maxNeighbour
+            }
+            for (c in inUpper) {
+                val inBoth = inLower.any { abs(it.x - c.x) <= spacing }
+                val known = bars.any { abs(it.first - c.x) <= spacing }
+                if (inBoth && !known) bars.add(c.x.toFloat() to c.tilt)
+            }
+        } else {
+            for (c in findBars(topOfUpper, bottomOfUpper, spacing)) {
+                if (c.up <= maxExtension && c.down <= maxExtension &&
+                    c.left <= maxNeighbour && c.right <= maxNeighbour &&
+                    bars.none { abs(it.first - c.x) <= spacing }
+                ) bars.add(c.x.toFloat() to c.tilt)
+            }
+        }
+
+        // Doppel-/Wiederholungsstriche (dünn + dick) zu einem Strich zusammenfassen
+        bars.sortBy { it.first }
+        val merged = mutableListOf<MutableList<Pair<Float, Float>>>()
+        for (bar in bars) {
+            if (merged.isNotEmpty() && bar.first - merged.last().last().first <= 1.3f * spacing) {
+                merged.last().add(bar)
+            } else {
+                merged.add(mutableListOf(bar))
+            }
+        }
+
+        for (group in merged) {
+            val x = group.map { it.first }.average().toFloat()
+            val tilt = group.map { it.second }.average().toFloat()
+            // Systemanfang und Zeilenende fallen mit den roten Außenkanten zusammen
+            if (x <= minX + 3f * spacing || x >= maxX - 3f * spacing) continue
+
+            val yTop = (system.top + slope * (x - centerX)).coerceIn(0f, height.toFloat())
+            val yBottom = (system.bottom + slope * (x - centerX)).coerceIn(0f, height.toFloat())
+            val xBottom = (x + tilt * (yBottom - yTop)).coerceIn(0f, width.toFloat())
             result.add(
                 AnnotationStroke(
                     points = listOf(
-                        DrawingPoint(bestX * scale, topAtX * scale),
-                        DrawingPoint(bestX * scale, bottomAtX * scale)
+                        DrawingPoint(x * scale, yTop * scale),
+                        DrawingPoint(xBottom * scale, yBottom * scale)
                     ),
-                    color = blue,
-                    strokeWidth = 2.5f,
-                    isEraser = false
+                    color = blue, strokeWidth = 2.5f, isEraser = false
                 )
             )
         }
     }
 
-    val topY = yAtX(staffs.first().top, minX.toFloat()).coerceIn(0f, displayHeight)
-    val bottomY = yAtX(staffs.last().bottom, minX.toFloat()).coerceIn(0f, displayHeight)
-    val topRightY = yAtX(staffs.first().top, maxX.toFloat()).coerceIn(0f, displayHeight)
-    val bottomRightY = yAtX(staffs.last().bottom, maxX.toFloat()).coerceIn(0f, displayHeight)
+    // Rote Außenkanten über alle Systeme
+    val topY = yAtX(systems.first().top, minX.toFloat()).coerceIn(0f, displayHeight)
+    val bottomY = yAtX(systems.last().bottom, minX.toFloat()).coerceIn(0f, displayHeight)
+    val topRightY = yAtX(systems.first().top, maxX.toFloat()).coerceIn(0f, displayHeight)
+    val bottomRightY = yAtX(systems.last().bottom, maxX.toFloat()).coerceIn(0f, displayHeight)
 
     result.add(
         AnnotationStroke(
             points = listOf(DrawingPoint(leftX, topY), DrawingPoint(leftX, bottomY)),
-            color = red,
-            strokeWidth = 3.5f,
-            isEraser = false
+            color = red, strokeWidth = 3.5f, isEraser = false
         )
     )
     result.add(
         AnnotationStroke(
             points = listOf(DrawingPoint(rightX, topRightY), DrawingPoint(rightX, bottomRightY)),
-            color = red,
-            strokeWidth = 3.5f,
-            isEraser = false
+            color = red, strokeWidth = 3.5f, isEraser = false
         )
     )
+
     return result
 }
 
