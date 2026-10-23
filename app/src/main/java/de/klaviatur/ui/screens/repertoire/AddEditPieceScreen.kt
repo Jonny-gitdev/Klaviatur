@@ -1,5 +1,11 @@
 package de.klaviatur.ui.screens.repertoire
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,11 +16,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -33,21 +44,25 @@ fun AddEditPieceScreen(
     onBack: () -> Unit,
     viewModel: RepertoireViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val allPieces by viewModel.allPieces.collectAsState()
     val existing = remember(pieceId, allPieces) { pieceId?.let { id -> allPieces.find { it.id == id } } }
 
     // Form state
     var title by remember(existing) { mutableStateOf(existing?.title ?: "") }
     var composer by remember(existing) { mutableStateOf(existing?.composer ?: "") }
+    var difficulty by remember(existing) { mutableStateOf(existing?.difficulty ?: 1) }
+
     var epoch by remember(existing) { mutableStateOf(existing?.epoch) }
-    var keySignature by remember(existing) { mutableStateOf(existing?.keySignature ?: "") }
-    var totalBars by remember(existing) { mutableStateOf(existing?.totalBars?.takeIf { it > 0 }?.toString() ?: "") }
-    var initialProgress by remember { mutableStateOf(ProgressLevel.NOT_LEARNED) }
     var tags by remember(existing) { mutableStateOf(existing?.tags ?: emptyList<String>()) }
     var tagInput by remember { mutableStateOf("") }
-    var targetBpm by remember(existing) { mutableStateOf(existing?.targetBpm?.takeIf { it > 0 }?.toString() ?: "") }
+
     var status by remember(existing) { mutableStateOf(existing?.status ?: PieceStatus.NEW) }
-    var difficulty by remember(existing) { mutableStateOf(existing?.difficulty ?: 1) }
+    var targetBpm by remember(existing) { mutableStateOf(existing?.targetBpm?.takeIf { it > 0 }?.toString() ?: "") }
+
+    var sheetFiles by remember(existing) { mutableStateOf(existing?.sheetFiles ?: emptyList<SheetFile>()) }
+    var totalBars by remember(existing) { mutableStateOf(existing?.totalBars?.takeIf { it > 0 }?.toString() ?: "") }
+
     var notes by remember(existing) { mutableStateOf(existing?.notes ?: "") }
 
     // OpenOpus
@@ -59,6 +74,25 @@ fun AddEditPieceScreen(
     var titleError by remember { mutableStateOf(false) }
     var compError by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val documentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+
+            val mime = context.contentResolver.getType(uri) ?: ""
+            val type = if (mime.contains("pdf", ignoreCase = true)) SheetFileType.PDF else SheetFileType.IMAGE
+            val name = getFileName(context, uri) ?: "Noten"
+            val newFile = SheetFile(uriString = uri.toString(), name = name, type = type)
+            sheetFiles = sheetFiles + newFile
+        }
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -100,34 +134,30 @@ fun AddEditPieceScreen(
                         if (titleError || compError) return@TextButton
                         val bars = totalBars.toIntOrNull() ?: 0
                         val newSections = if (existing == null && bars > 0) {
+                            val level = if (status == PieceStatus.REPERTOIRE) ProgressLevel.SAFE else ProgressLevel.NOT_LEARNED
                             listOf(
                                 PieceSection(
                                     startBar = 1,
                                     endBar = bars,
-                                    level = initialProgress
+                                    level = level
                                 )
                             )
                         } else {
                             existing?.sections ?: emptyList()
                         }
 
-                        val newStatus = if (existing == null && initialProgress == ProgressLevel.SAFE) {
-                            PieceStatus.REPERTOIRE
-                        } else {
-                            status
-                        }
-
                         val piece = (existing ?: Piece(title = "", composer = "")).copy(
                             title = title.trim(),
                             composer = composer.trim(),
                             epoch = epoch,
-                            keySignature = keySignature.trim(),
+                            keySignature = existing?.keySignature ?: "",
                             totalBars = bars,
                             sections = newSections,
                             tags = tags,
                             targetBpm = targetBpm.toIntOrNull() ?: 0,
-                            status = newStatus,
+                            status = status,
                             difficulty = difficulty,
+                            sheetFiles = sheetFiles,
                             notes = notes.trim()
                         )
                         viewModel.upsertPiece(piece)
@@ -202,7 +232,7 @@ fun AddEditPieceScreen(
                 }
             }
 
-            // ── Basic info ────────────────────────────────────────────────────
+            // ── Stück Details ──────────────────────────────────────────────────
             FormCard(stringResource(R.string.pieces_stat)) {
                 FormField(stringResource(R.string.field_title)) {
                     OutlinedTextField(
@@ -212,64 +242,12 @@ fun AddEditPieceScreen(
                     )
                 }
                 Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FormField(stringResource(R.string.field_composer), Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = composer, onValueChange = { composer = it; compError = false },
-                            isError = compError, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                            colors = outlinedTextFieldColors()
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FormField(stringResource(R.string.field_key), Modifier.weight(1f)) {
-                        OutlinedTextField(
-                            value = keySignature, onValueChange = { keySignature = it },
-                            placeholder = { Text(stringResource(R.string.field_key_placeholder)) },
-                            singleLine = true, modifier = Modifier.fillMaxWidth(),
-                            colors = outlinedTextFieldColors()
-                        )
-                    }
-                    FormField(stringResource(R.string.field_epoch), Modifier.weight(1f)) {
-                        var expanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                            OutlinedTextField(
-                                value = epoch?.localizedLabel() ?: stringResource(R.string.select_epoch),
-                                onValueChange = {},
-                                readOnly = true,
-                                modifier = Modifier.fillMaxWidth().menuAnchor(),
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                                colors = outlinedTextFieldColors()
-                            )
-                            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                                DropdownMenuItem(text = { Text(stringResource(R.string.no_epoch)) }, onClick = { epoch = null; expanded = false })
-                                AppSettings.activeEpochs.forEach { e ->
-                                    DropdownMenuItem(text = { Text(e.localizedLabel()) }, onClick = { epoch = e; expanded = false })
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── Status & difficulty ───────────────────────────────────────────
-            FormCard("${stringResource(R.string.field_status)} & ${stringResource(R.string.field_difficulty)}") {
-                FormField(stringResource(R.string.field_status)) {
-                    var expanded by remember { mutableStateOf(false) }
-                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                        OutlinedTextField(
-                            value = status.localizedLabel(), onValueChange = {}, readOnly = true,
-                            modifier = Modifier.fillMaxWidth().menuAnchor(),
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-                            colors = outlinedTextFieldColors()
-                        )
-                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            PieceStatus.entries.forEach { s ->
-                                DropdownMenuItem(text = { Text(s.localizedLabel()) }, onClick = { status = s; expanded = false })
-                            }
-                        }
-                    }
+                FormField(stringResource(R.string.field_composer)) {
+                    OutlinedTextField(
+                        value = composer, onValueChange = { composer = it; compError = false },
+                        isError = compError, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        colors = outlinedTextFieldColors()
+                    )
                 }
                 Spacer(Modifier.height(10.dp))
                 FormField(stringResource(R.string.field_difficulty)) {
@@ -286,33 +264,92 @@ fun AddEditPieceScreen(
                 }
             }
 
-            // ── Progress ──────────────────────────────────────────────────────
-            FormCard(stringResource(R.string.progress_header)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {
-                    FormField(stringResource(R.string.field_total_bars), Modifier.weight(1f)) {
+            // ── Kategorien ────────────────────────────────────────────────────
+            FormCard("KATEGORIEN") {
+                FormField(stringResource(R.string.field_epoch)) {
+                    var expanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
-                            value = totalBars, onValueChange = { totalBars = it },
-                            placeholder = { Text(stringResource(R.string.field_total_bars_placeholder)) },
-                            singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth(), colors = outlinedTextFieldColors()
+                            value = epoch?.localizedLabel() ?: stringResource(R.string.select_epoch),
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                            colors = outlinedTextFieldColors()
                         )
+                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.no_epoch)) }, onClick = { epoch = null; expanded = false })
+                            AppSettings.activeEpochs.forEach { e ->
+                                DropdownMenuItem(text = { Text(e.localizedLabel()) }, onClick = { epoch = e; expanded = false })
+                            }
+                        }
                     }
-                    if (existing == null) {
-                        FormField(stringResource(R.string.field_start_state), Modifier.weight(1f)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(
-                                    selected = initialProgress == ProgressLevel.NOT_LEARNED,
-                                    onClick = { initialProgress = ProgressLevel.NOT_LEARNED },
-                                    label = { Text(stringResource(R.string.state_not_learned)) },
-                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ProgressLevel.NOT_LEARNED.color.let { Color(it) }, selectedLabelColor = Color.White)
-                                )
-                                FilterChip(
-                                    selected = initialProgress == ProgressLevel.SAFE,
-                                    onClick = { initialProgress = ProgressLevel.SAFE },
-                                    label = { Text(stringResource(R.string.state_safe)) },
-                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = ProgressLevel.SAFE.color.let { Color(it) }, selectedLabelColor = Color.White)
+                }
+                Spacer(Modifier.height(10.dp))
+                FormField(stringResource(R.string.field_tags)) {
+                    OutlinedTextField(
+                        value = tagInput,
+                        onValueChange = { tagInput = it },
+                        placeholder = { Text(stringResource(R.string.field_tag_placeholder)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            if (tagInput.isNotBlank()) {
+                                IconButton(onClick = {
+                                    if (tagInput.isNotBlank() && !tags.contains(tagInput.trim())) {
+                                        tags = tags + tagInput.trim()
+                                        tagInput = ""
+                                    }
+                                }) {
+                                    Icon(Icons.Default.Add, stringResource(R.string.add_piece))
+                                }
+                            }
+                        },
+                        colors = outlinedTextFieldColors(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            if (tagInput.isNotBlank() && !tags.contains(tagInput.trim())) {
+                                tags = tags + tagInput.trim()
+                                tagInput = ""
+                            }
+                        })
+                    )
+                    if (tags.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            tags.forEach { tag ->
+                                InputChip(
+                                    selected = false,
+                                    onClick = { tags = tags - tag },
+                                    label = { Text(tag) },
+                                    trailingIcon = { Icon(Icons.Default.Close, null, Modifier.size(16.dp)) }
                                 )
                             }
+                        }
+                    }
+                }
+            }
+
+            // ── Fortschritt ───────────────────────────────────────────────────
+            FormCard(stringResource(R.string.progress_header)) {
+                FormField(stringResource(R.string.field_status)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        listOf(PieceStatus.NEW, PieceStatus.LEARNING, PieceStatus.REPERTOIRE).forEach { s ->
+                            FilterChip(
+                                selected = status == s,
+                                onClick = { status = s },
+                                label = { Text(s.localizedLabel()) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ForestGreenBg,
+                                    selectedLabelColor = ForestGreen
+                                )
+                            )
                         }
                     }
                 }
@@ -327,54 +364,68 @@ fun AddEditPieceScreen(
                 }
             }
 
-            // ── Tags ────────────────────────────────────────────────────────────
-            FormCard(stringResource(R.string.field_tags)) {
-                OutlinedTextField(
-                    value = tagInput,
-                    onValueChange = { tagInput = it },
-                    placeholder = { Text(stringResource(R.string.field_tag_placeholder)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        if (tagInput.isNotBlank()) {
-                            IconButton(onClick = {
-                                if (tagInput.isNotBlank() && !tags.contains(tagInput.trim())) {
-                                    tags = tags + tagInput.trim()
-                                    tagInput = ""
-                                }
-                            }) {
-                                Icon(Icons.Default.Add, stringResource(R.string.add_piece))
-                            }
-                        }
-                    },
-                    colors = outlinedTextFieldColors(),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = {
-                        if (tagInput.isNotBlank() && !tags.contains(tagInput.trim())) {
-                            tags = tags + tagInput.trim()
-                            tagInput = ""
-                        }
-                    })
-                )
-                if (tags.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+            // ── Noten ─────────────────────────────────────────────────────────
+            FormCard("NOTEN") {
+                FormField("Notenblätter / PDF / Bild") {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        tags.forEach { tag ->
-                            InputChip(
-                                selected = false,
-                                onClick = { tags = tags - tag },
-                                label = { Text(tag) },
-                                trailingIcon = { Icon(Icons.Default.Close, null, Modifier.size(16.dp)) }
-                            )
+                        TextButton(
+                            onClick = { documentLauncher.launch(arrayOf("application/pdf", "image/*")) },
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp), tint = ForestGreen)
+                            Spacer(Modifier.width(4.dp))
+                            Text("PDF / Bild hinzufügen", color = ForestGreen)
+                        }
+                    }
+                    if (sheetFiles.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            sheetFiles.forEach { sheet ->
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(PaperBeige)
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                        Icon(
+                                            imageVector = if (sheet.type == SheetFileType.PDF) Icons.Default.Description else Icons.Default.Image,
+                                            contentDescription = null,
+                                            tint = ForestGreen,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Text(sheet.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                                    }
+                                    IconButton(onClick = {
+                                        sheetFiles = sheetFiles.filter { it.id != sheet.id }
+                                    }) {
+                                        Icon(Icons.Default.Delete, stringResource(R.string.action_delete), tint = TextHint, modifier = Modifier.size(20.dp))
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+                Spacer(Modifier.height(10.dp))
+                FormField(stringResource(R.string.field_total_bars)) {
+                    OutlinedTextField(
+                        value = totalBars, onValueChange = { totalBars = it },
+                        placeholder = { Text(stringResource(R.string.field_total_bars_placeholder)) },
+                        singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(), colors = outlinedTextFieldColors()
+                    )
+                }
             }
 
-            // ── Notes ─────────────────────────────────────────────────────────
+            // ── Notizen ───────────────────────────────────────────────────────
             FormCard(stringResource(R.string.field_notes)) {
                 OutlinedTextField(
                     value = notes, onValueChange = { notes = it },
@@ -387,6 +438,27 @@ fun AddEditPieceScreen(
             Spacer(Modifier.height(24.dp))
         }
     }
+}
+
+private fun getFileName(context: Context, uri: Uri): String? {
+    var result: String? = null
+    if (uri.scheme == "content") {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val index = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (index != -1) result = it.getString(index)
+            }
+        }
+    }
+    if (result == null) {
+        result = uri.path
+        val cut = result?.lastIndexOf('/') ?: -1
+        if (cut != -1) {
+            result = result?.substring(cut + 1)
+        }
+    }
+    return result
 }
 
 @Composable
