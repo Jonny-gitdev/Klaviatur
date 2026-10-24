@@ -45,6 +45,9 @@ import de.klaviatur.ui.theme.*
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.foundation.lazy.rememberLazyListState
+import de.klaviatur.ui.tutorial.tutorialTarget
+import de.klaviatur.ui.tutorial.TutorialManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -176,6 +179,23 @@ fun PieceDetailScreen(
         }
     }
 
+    // Tutorial: zum jeweils markierten Bereich scrollen (Listenindex hängt davon ab, ob Fortschritt/Abschnitte angezeigt werden)
+    val listState = rememberLazyListState()
+    val tutorialTargetId = TutorialManager.currentStep?.target
+    LaunchedEffect(tutorialTargetId, piece?.id) {
+        val p = piece ?: return@LaunchedEffect
+        val hasProgress = p.totalBars > 0 || p.sections.isNotEmpty()
+        val idx = when (tutorialTargetId) {
+            "detail_header" -> 0
+            "detail_progress" -> if (hasProgress) 1 else null
+            "detail_sections" -> if (hasProgress) 2 else null
+            "detail_sheet_button" -> if (hasProgress) 3 else 1
+            "detail_tempo" -> if (hasProgress) 4 else 2
+            else -> null
+        }
+        if (idx != null) listState.animateScrollToItem(idx)
+    }
+
     if (piece == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = ForestGreen)
@@ -198,11 +218,12 @@ fun PieceDetailScreen(
     ) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
+            state = listState,
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
+                Surface(modifier = Modifier.tutorialTarget("detail_header"), shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                     Column(Modifier.padding(18.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                             Column(Modifier.weight(1f)) {
@@ -264,7 +285,7 @@ fun PieceDetailScreen(
             // Progress
             if (piece.totalBars > 0 || piece.sections.isNotEmpty()) {
                 item {
-                    Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
+                    Surface(modifier = Modifier.tutorialTarget("detail_progress"), shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                         Column(Modifier.padding(16.dp)) {
                             Text(stringResource(R.string.progress_header), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(bottom = 10.dp))
                             BarProgress(piece.sections, piece.totalBars, Modifier.fillMaxWidth())
@@ -277,7 +298,7 @@ fun PieceDetailScreen(
                 }
 
                 item {
-                    Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
+                    Surface(modifier = Modifier.tutorialTarget("detail_sections"), shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                         Column(Modifier.padding(16.dp)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text(stringResource(R.string.sections_header), style = MaterialTheme.typography.labelSmall)
@@ -414,7 +435,7 @@ fun PieceDetailScreen(
                                 Spacer(Modifier.height(8.dp))
                                 Button(
                                     onClick = { onOpenSheetViewer(piece.id) },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().tutorialTarget("detail_sheet_button"),
                                     colors = ButtonDefaults.buttonColors(containerColor = ForestGreen)
                                 ) {
                                     Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp))
@@ -429,7 +450,7 @@ fun PieceDetailScreen(
 
             // Tempo log
             item {
-                Surface(shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
+                Surface(modifier = Modifier.tutorialTarget("detail_tempo"), shape = RoundedCornerShape(14.dp), color = PaperWhite, border = ButtonDefaults.outlinedButtonBorder) {
                     Column(Modifier.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.tempo_log_header), style = MaterialTheme.typography.labelSmall)

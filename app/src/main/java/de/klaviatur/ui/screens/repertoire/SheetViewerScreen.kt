@@ -56,6 +56,9 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import de.klaviatur.ui.tutorial.tutorialTarget
+import de.klaviatur.ui.tutorial.TutorialManager
+import de.klaviatur.ui.tutorial.TutorialEvent
 
 
 
@@ -803,6 +806,7 @@ fun SheetViewerScreen(
         topBar = {
             if (!isFullscreen) {
                 TopAppBar(
+                    modifier = Modifier.tutorialTarget("sheet_topbar"),
                     title = {
                         Column {
                             Text(piece?.title ?: stringResource(R.string.sheet_viewer_title), style = MaterialTheme.typography.titleMedium)
@@ -864,7 +868,7 @@ fun SheetViewerScreen(
                 ) {
                     Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().tutorialTarget("sheet_tools"),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -872,7 +876,8 @@ fun SheetViewerScreen(
                                 label = "(Verschieben)",
                                 icon = Icons.Default.PanTool,
                                 selected = selectedTool == DrawingTool.SCROLL,
-                                onClick = { selectedTool = DrawingTool.SCROLL }
+                                onClick = { selectedTool = DrawingTool.SCROLL },
+                                modifier = Modifier.tutorialTarget("tool_scroll")
                             )
                             ToolButton(
                                 label = "(Stift)",
@@ -896,13 +901,21 @@ fun SheetViewerScreen(
                                 label = "(Takt)",
                                 icon = Icons.Default.Tune,
                                 selected = selectedTool == DrawingTool.EDIT,
-                                onClick = { selectedTool = DrawingTool.EDIT }
+                                onClick = {
+                                    selectedTool = DrawingTool.EDIT
+                                    TutorialManager.onEvent(TutorialEvent.EDIT_TOOL_SELECTED)
+                                },
+                                modifier = Modifier.tutorialTarget("tool_edit")
                             )
                             ToolButton(
                                 label = "(Abschnitte)",
                                 icon = Icons.Default.Bookmark,
                                 selected = showSectionsOverlay,
-                                onClick = { showSectionsOverlay = !showSectionsOverlay }
+                                onClick = {
+                                    showSectionsOverlay = !showSectionsOverlay
+                                    if (!showSectionsOverlay) TutorialManager.onEvent(TutorialEvent.SECTIONS_HIDDEN)
+                                },
+                                modifier = Modifier.tutorialTarget("tool_sections")
                             )
                         }
 
@@ -964,7 +977,7 @@ fun SheetViewerScreen(
 
                         if (selectedTool == DrawingTool.EDIT) {
                             Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                Modifier.fillMaxWidth().padding(horizontal = 4.dp).tutorialTarget("edit_actions"),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -972,6 +985,7 @@ fun SheetViewerScreen(
                                     label = if (isDetectingLines) "Erkennen..." else "Takterkennung",
                                     icon = Icons.Default.AutoAwesome,
                                     selected = isDetectingLines,
+                                    modifier = Modifier.tutorialTarget("tool_detect"),
                                     onClick = {
                                         val currentPiece = piece ?: return@ToolButton
                                         if (isDetectingLines || sheetPages.isEmpty()) return@ToolButton
@@ -1024,6 +1038,7 @@ fun SheetViewerScreen(
                                                 Toast.makeText(context, "Erkennung fehlgeschlagen: ${e.localizedMessage ?: "unbekannter Fehler"}", Toast.LENGTH_LONG).show()
                                             } finally {
                                                 isDetectingLines = false
+                                                TutorialManager.onEvent(TutorialEvent.DETECTION_DONE)
                                             }
                                         }
                                     }
@@ -1219,7 +1234,8 @@ fun SheetViewerScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .tutorialTarget("sheet_sections_bar"),
                             shape = RoundedCornerShape(10.dp),
                             color = PaperWhite,
                             border = BorderStroke(1.dp, BorderColor),
@@ -1273,6 +1289,7 @@ fun SheetViewerScreen(
                         Modifier
                             .fillMaxSize()
                             .onGloballyPositioned { viewportOffset = it.positionInParent() }
+                            .tutorialTarget("sheet_content")
                             .clipToBounds()
                             .graphicsLayer {
                                 scaleX = gScale
@@ -1562,10 +1579,12 @@ fun ToolButton(
     label: String? = null,
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         color = if (selected) ForestGreenBg else PaperWhite,
         border = BorderStroke(1.dp, if (selected) ForestGreen else Color.LightGray)

@@ -15,6 +15,7 @@ import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
 import de.klaviatur.util.UgConverter
+import de.klaviatur.ui.tutorial.tutorialTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +55,7 @@ fun UgImportScreen(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text(stringResource(R.string.field_title)) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().tutorialTarget("ug_title")
             )
             OutlinedTextField(
                 value = artist,
@@ -71,7 +72,8 @@ fun UgImportScreen(
                 label = { Text("Ultimate Guitar Text (Chord-over-lyrics)") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .tutorialTarget("ug_text"),
                 textStyle = MaterialTheme.typography.bodySmall.copy(
                     fontFamily = FontFamily.Monospace
                 ),
@@ -89,7 +91,7 @@ fun UgImportScreen(
                         errorMessage = e.message
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().tutorialTarget("ug_save"),
                 colors = ButtonDefaults.buttonColors(containerColor = ForestGreen),
                 enabled = title.isNotBlank() && ugText.isNotBlank()
             ) {

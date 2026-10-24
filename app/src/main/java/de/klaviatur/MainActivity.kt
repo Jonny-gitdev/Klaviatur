@@ -34,7 +34,14 @@ import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
 import de.klaviatur.ui.Screen
 import de.klaviatur.ui.components.MetronomeBottomSheet
-import de.klaviatur.ui.components.TutorialDialog
+import de.klaviatur.data.repository.PieceRepository
+import de.klaviatur.ui.tutorial.TutorialManager
+import de.klaviatur.ui.tutorial.TutorialOverlay
+import de.klaviatur.ui.tutorial.TutorialScreen
+import de.klaviatur.ui.tutorial.tutorialTarget
+import androidx.compose.foundation.layout.Box
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavHostController
 import de.klaviatur.ui.screens.chords.ChordSheetDetailScreen
 import de.klaviatur.ui.screens.chords.ChordSheetsScreen
 import de.klaviatur.ui.screens.chords.ChordViewModel
@@ -66,6 +73,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var metronomeManager: MetronomeManager
+    @Inject lateinit var pieceRepository: PieceRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,7 +86,7 @@ class MainActivity : ComponentActivity() {
                 LocalConfiguration provides localizedConfig
             ) {
                 KlaviatürTheme {
-                    KlaviaturAppUI(metronomeManager)
+                    KlaviaturAppUI(metronomeManager, pieceRepository)
                 }
             }
         }
@@ -132,7 +140,7 @@ private val bottomNavItems = listOf(
 )
 
 @Composable
-private fun KlaviaturAppUI(metronomeManager: MetronomeManager) {
+private fun KlaviaturAppUI(metronomeManager: MetronomeManager, pieceRepository: PieceRepository) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -141,12 +149,25 @@ private fun KlaviaturAppUI(metronomeManager: MetronomeManager) {
     val chordViewModel: ChordViewModel = hiltViewModel()
     var showMetronome by remember { mutableStateOf(false) }
 
-    var showTutorial by remember { mutableStateOf(!AppSettings.hasSeenTutorial) }
-
     val showBottomBar = currentRoute in bottomNavItems.map { it.screen.route }
 
-    if (showTutorial) {
-        TutorialDialog(onDismiss = { showTutorial = false })
+    // ── Geführtes Tutorial ─────────────────────────────────────────────────
+    val allPieces by pieceRepository.allPieces.collectAsState(initial = emptyList())
+    LaunchedEffect(allPieces) { TutorialManager.updatePieces(allPieces) }
+    LaunchedEffect(Unit) { TutorialManager.startIfFirstLaunch() }
+
+    // Meldet dem Tutorial jede Änderung des aktuellen Screens (schließt "Tippe auf ..."-Schritte ab)
+    val currentConcrete = concreteRoute(navBackStackEntry)
+    LaunchedEffect(currentConcrete) { TutorialManager.onScreenReached(currentConcrete) }
+
+    // Springt automatisch zum Screen, den der aktuelle Tutorial-Schritt braucht
+    val tutorialStep = TutorialManager.currentStep
+    LaunchedEffect(tutorialStep?.id, TutorialManager.pieceAId, TutorialManager.pieceBId) {
+        val step = tutorialStep ?: return@LaunchedEffect
+        val target = TutorialManager.routeFor(step.screen) ?: return@LaunchedEffect
+        if (concreteRoute(navController.currentBackStackEntry) != target) {
+            navigateForTutorial(navController, step.screen, target)
+        }
     }
 
     if (showMetronome) {
@@ -156,12 +177,14 @@ private fun KlaviaturAppUI(metronomeManager: MetronomeManager) {
         )
     }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = PaperBeige,
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar(
+                    modifier = Modifier.tutorialTarget("bottom_nav"),
                     containerColor = PaperWhite,
                     tonalElevation = 0.dp
                 ) {
@@ -304,7 +327,7 @@ private fun KlaviaturAppUI(metronomeManager: MetronomeManager) {
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
-                    onStartTutorial = { showTutorial = true }
+                    onStartTutorial = { TutorialManager.start() }
                 )
             }
             composable(
@@ -336,5 +359,33 @@ private fun KlaviaturAppUI(metronomeManager: MetronomeManager) {
                 )
             }
         }
+    }
+    // Tutorial-Overlay liegt über allem (dunkelt ab, hebt hervor, erklärt)
+    TutorialOverlay()
+    }
+}
+
+// ── Tutorial-Navigation ─────────────────────────────────────────────────────
+
+/** Wandelt die aktuelle Backstack-Zielroute ("piece/{pieceId}") in eine konkrete Route ("piece/12") um. */
+private fun concreteRoute(entry: NavBackStackEntry?): String? {
+    val pattern = entry?.destination?.route ?: return null
+    return when (pattern) {
+        Screen.PieceDetail.route -> entry.arguments?.getLong("pieceId")?.let { Screen.PieceDetail.route(it) }
+        Screen.SheetViewer.route -> entry.arguments?.getLong("pieceId")?.let { Screen.SheetViewer.route(it) }
+        Screen.AddEditPiece.route -> Screen.AddEditPiece.route()
+        else -> pattern
+    }
+}
+
+private fun navigateForTutorial(nav: NavHostController, screen: TutorialScreen, target: String) {
+    val isTab = screen == TutorialScreen.REPERTOIRE || screen == TutorialScreen.WELCOME || screen == TutorialScreen.CHORDS
+    if (isTab) {
+        nav.navigate(target) {
+            popUpTo(nav.graph.findStartDestination().id)
+            launchSingleTop = true
+        }
+    } else {
+        nav.navigate(target) { launchSingleTop = true }
     }
 }

@@ -27,6 +27,8 @@ import de.klaviatur.ui.components.PieceCard
 import de.klaviatur.ui.components.SectionHeader
 import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
+import de.klaviatur.ui.tutorial.tutorialTarget
+import de.klaviatur.ui.tutorial.TutorialManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +53,7 @@ fun RepertoireScreen(
         containerColor = PaperBeige,
         topBar = {
             TopAppBar(
+                modifier = Modifier.tutorialTarget("repertoire_topbar"),
                 title = {
                     if (showSearch) {
                         OutlinedTextField(
@@ -102,6 +105,7 @@ fun RepertoireScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddPiece,
+                modifier = Modifier.tutorialTarget("fab_add"),
                 containerColor = ForestGreen,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
@@ -190,7 +194,11 @@ fun RepertoireScreen(
                 if (inProgress.isNotEmpty()) {
                     item { SectionHeader(stringResource(R.string.section_in_progress)) }
                     items(inProgress, key = { it.id }) { piece ->
-                        PieceCard(piece = piece, onClick = { onPieceClick(piece.id) })
+                        PieceCard(
+                            piece = piece,
+                            onClick = { onPieceClick(piece.id) },
+                            tutorialKey = TutorialManager.pieceKey(piece.id)
+                        )
                     }
                 }
 
@@ -199,7 +207,11 @@ fun RepertoireScreen(
                 if (repertoire.isNotEmpty()) {
                     item { Spacer(Modifier.height(4.dp)); SectionHeader(stringResource(R.string.section_repertoire)) }
                     items(repertoire, key = { it.id }) { piece ->
-                        PieceCard(piece = piece, onClick = { onPieceClick(piece.id) })
+                        PieceCard(
+                            piece = piece,
+                            onClick = { onPieceClick(piece.id) },
+                            tutorialKey = TutorialManager.pieceKey(piece.id)
+                        )
                     }
                 }
 
@@ -208,7 +220,11 @@ fun RepertoireScreen(
                 if (newPieces.isNotEmpty()) {
                     item { Spacer(Modifier.height(4.dp)); SectionHeader(stringResource(R.string.section_new)) }
                     items(newPieces, key = { it.id }) { piece ->
-                        PieceCard(piece = piece, onClick = { onPieceClick(piece.id) })
+                        PieceCard(
+                            piece = piece,
+                            onClick = { onPieceClick(piece.id) },
+                            tutorialKey = TutorialManager.pieceKey(piece.id)
+                        )
                     }
                 }
             }
@@ -225,7 +241,7 @@ private fun FilterChipRow(
     onFilterChange: (RepertoireFilter) -> Unit
 ) {
     Row(
-        Modifier.horizontalScroll(rememberScrollState()),
+        Modifier.horizontalScroll(rememberScrollState()).tutorialTarget("filter_chips"),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

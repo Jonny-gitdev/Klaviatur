@@ -24,6 +24,7 @@ import de.klaviatur.data.model.PieceSection
 import de.klaviatur.data.model.PieceStatus
 import de.klaviatur.data.model.ProgressLevel
 import de.klaviatur.ui.theme.*
+import de.klaviatur.ui.tutorial.tutorialTarget
 
 // ── Localization Extensions ───────────────────────────────────────────────────
 
@@ -177,10 +178,15 @@ fun SectionHeader(title: String, actionLabel: String? = null, onAction: (() -> U
 // ── Piece card ────────────────────────────────────────────────────────────────
 
 @Composable
-fun PieceCard(piece: Piece, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun PieceCard(
+    piece: Piece,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tutorialKey: String? = null   // "a"/"b" für die Tutorial-Stücke, sonst null
+) {
     Surface(
         onClick   = onClick,
-        modifier  = modifier.fillMaxWidth(),
+        modifier  = modifier.fillMaxWidth().tutorialTarget(tutorialKey?.let { "piece_card_$it" }),
         shape     = RoundedCornerShape(14.dp),
         color     = PaperWhite,
         tonalElevation = 0.dp,
@@ -201,7 +207,11 @@ fun PieceCard(piece: Piece, onClick: () -> Unit, modifier: Modifier = Modifier) 
 
             if (piece.totalBars > 0 || piece.sections.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))
-                BarProgress(piece.sections, piece.totalBars)
+                BarProgress(
+                    piece.sections,
+                    piece.totalBars,
+                    Modifier.tutorialTarget(tutorialKey?.let { "piece_progress_$it" })
+                )
             }
 
             Spacer(Modifier.height(8.dp))

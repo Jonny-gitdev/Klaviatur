@@ -36,6 +36,7 @@ import de.klaviatur.data.model.*
 import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
 import de.klaviatur.util.AppSettings
+import de.klaviatur.ui.tutorial.tutorialTarget
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -128,7 +129,7 @@ fun AddEditPieceScreen(
                             Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
                         }
                     }
-                    TextButton(onClick = {
+                    TextButton(modifier = Modifier.tutorialTarget("add_save"), onClick = {
                         titleError = title.isBlank()
                         compError = composer.isBlank()
                         if (titleError || compError) return@TextButton
@@ -177,7 +178,7 @@ fun AddEditPieceScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ── OpenOpus search ───────────────────────────────────────────────
-            FormCard(stringResource(R.string.openopus_search)) {
+            FormCard(stringResource(R.string.openopus_search), Modifier.tutorialTarget("add_openopus")) {
                 OutlinedTextField(
                     value = ooQuery,
                     onValueChange = {
@@ -233,7 +234,7 @@ fun AddEditPieceScreen(
             }
 
             // ── Stück Details ──────────────────────────────────────────────────
-            FormCard(stringResource(R.string.pieces_stat)) {
+            FormCard(stringResource(R.string.pieces_stat), Modifier.tutorialTarget("add_details")) {
                 FormField(stringResource(R.string.field_title)) {
                     OutlinedTextField(
                         value = title, onValueChange = { title = it; titleError = false },
@@ -334,7 +335,7 @@ fun AddEditPieceScreen(
             }
 
             // ── Fortschritt ───────────────────────────────────────────────────
-            FormCard(stringResource(R.string.progress_header)) {
+            FormCard(stringResource(R.string.progress_header), Modifier.tutorialTarget("add_progress")) {
                 FormField(stringResource(R.string.field_status)) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -365,7 +366,7 @@ fun AddEditPieceScreen(
             }
 
             // ── Noten ─────────────────────────────────────────────────────────
-            FormCard("NOTEN") {
+            FormCard("NOTEN", Modifier.tutorialTarget("add_sheets")) {
                 FormField("Notenblätter / PDF / Bild") {
                     Row(
                         Modifier.fillMaxWidth(),
@@ -475,8 +476,9 @@ private fun DifficultyChip(level: Int, current: Int, onClick: (Int) -> Unit) {
 }
 
 @Composable
-private fun FormCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun FormCard(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
+        modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         color = PaperWhite,
         border = ButtonDefaults.outlinedButtonBorder

@@ -26,6 +26,7 @@ import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
 import de.klaviatur.util.AppSettings
+import de.klaviatur.ui.tutorial.tutorialTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +80,10 @@ fun ChordSheetsScreen(
                     IconButton(onClick = { showPlaylistDialog = true }) {
                         Icon(Icons.AutoMirrored.Filled.PlaylistAdd, stringResource(R.string.new_playlist))
                     }
-                    IconButton(onClick = { folderLauncher.launch(null) }) {
+                    IconButton(
+                        onClick = { folderLauncher.launch(null) },
+                        modifier = Modifier.tutorialTarget("chords_folder")
+                    ) {
                         Icon(Icons.Default.Folder, stringResource(R.string.select_folder_tooltip))
                     }
                 },
@@ -89,6 +93,7 @@ fun ChordSheetsScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showImportDialog = true },
+                modifier = Modifier.tutorialTarget("chords_fab"),
                 containerColor = ForestGreen,
                 contentColor = PaperWhite
             ) {
