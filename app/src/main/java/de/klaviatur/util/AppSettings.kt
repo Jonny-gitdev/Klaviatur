@@ -12,6 +12,7 @@ object AppSettings {
     private const val PREFS_NAME = "klaviatur_settings"
     private const val KEY_LANGUAGE = "language"
     private const val KEY_HAS_SEEN_TUTORIAL = "has_seen_tutorial"
+    private const val KEY_HAS_INITIALIZED_DEFAULTS = "has_initialized_defaults"
     private const val KEY_OLGA_URI = "olga_folder_uri"
     private const val KEY_ACTIVE_EPOCHS = "active_epochs"
 
@@ -35,6 +36,14 @@ object AppSettings {
             prefs?.edit()?.putBoolean(KEY_HAS_SEEN_TUTORIAL, value)?.apply()
         }
 
+    private var _hasInitializedDefaults by mutableStateOf(false)
+    var hasInitializedDefaults: Boolean
+        get() = _hasInitializedDefaults
+        set(value) {
+            _hasInitializedDefaults = value
+            prefs?.edit()?.putBoolean(KEY_HAS_INITIALIZED_DEFAULTS, value)?.apply()
+        }
+
     var activeEpochs by mutableStateOf(Epoch.entries.toSet())
         private set
 
@@ -53,6 +62,7 @@ object AppSettings {
 
         _language = p.getString(KEY_LANGUAGE, "System") ?: "System"
         _hasSeenTutorial = p.getBoolean(KEY_HAS_SEEN_TUTORIAL, false)
+        _hasInitializedDefaults = p.getBoolean(KEY_HAS_INITIALIZED_DEFAULTS, false)
 
         val uriStr = p.getString(KEY_OLGA_URI, null)
         _olgaFolderUri = if (!uriStr.isNullOrBlank()) Uri.parse(uriStr) else null

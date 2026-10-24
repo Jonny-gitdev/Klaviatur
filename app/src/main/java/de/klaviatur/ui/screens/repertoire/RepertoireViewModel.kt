@@ -8,6 +8,7 @@ import de.klaviatur.data.repository.OpenOpusRepository
 import de.klaviatur.data.repository.PieceRepository
 import de.klaviatur.data.repository.SessionRepository
 import de.klaviatur.data.db.OOSearchResult
+import de.klaviatur.util.AppSettings
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -29,6 +30,15 @@ class RepertoireViewModel @Inject constructor(
     private val ooRepo: OpenOpusRepository,
     private val sessionRepo: SessionRepository
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            if (!AppSettings.hasInitializedDefaults) {
+                repo.checkAndPrepopulateDefaultPieces()
+                AppSettings.hasInitializedDefaults = true
+            }
+        }
+    }
 
     private val _filter = MutableStateFlow(RepertoireFilter())
     val filter: StateFlow<RepertoireFilter> = _filter.asStateFlow()

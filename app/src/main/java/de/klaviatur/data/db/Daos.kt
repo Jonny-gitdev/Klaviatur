@@ -11,6 +11,9 @@ interface PieceDao {
     @Query("SELECT * FROM pieces ORDER BY createdAt DESC")
     fun getAllFlow(): Flow<List<Piece>>
 
+    @Query("SELECT COUNT(*) FROM pieces")
+    suspend fun getCount(): Int
+
     @Query("SELECT * FROM pieces WHERE id = :id")
     suspend fun getById(id: Long): Piece?
 
@@ -40,6 +43,9 @@ interface SessionDao {
 interface ListDao {
     @Query("SELECT * FROM piece_lists ORDER BY createdAt DESC")
     fun getAllFlow(): Flow<List<PieceList>>
+
+    @Query("SELECT * FROM piece_lists")
+    suspend fun getAll(): List<PieceList>
 
     @Query("SELECT * FROM piece_lists WHERE id = :id")
     suspend fun getById(id: Long): PieceList?

@@ -687,6 +687,22 @@ fun SheetViewerScreen(
     val allPieces by viewModel.allPieces.collectAsState()
     val piece = allPieces.find { it.id == pieceId }
 
+    var initialCheckDone by remember { mutableStateOf(false) }
+    LaunchedEffect(allPieces) {
+        if (allPieces.isNotEmpty() || initialCheckDone) {
+            initialCheckDone = true
+        } else {
+            delay(300)
+            initialCheckDone = true
+        }
+    }
+
+    LaunchedEffect(piece, initialCheckDone) {
+        if (initialCheckDone && piece == null) {
+            onBack()
+        }
+    }
+
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()

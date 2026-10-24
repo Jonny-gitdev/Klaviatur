@@ -160,6 +160,22 @@ fun PieceDetailScreen(
         )
     }
 
+    var initialCheckDone by remember { mutableStateOf(false) }
+    LaunchedEffect(allPieces) {
+        if (allPieces.isNotEmpty() || initialCheckDone) {
+            initialCheckDone = true
+        } else {
+            delay(300)
+            initialCheckDone = true
+        }
+    }
+
+    LaunchedEffect(piece, initialCheckDone) {
+        if (initialCheckDone && piece == null) {
+            onBack()
+        }
+    }
+
     if (piece == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = ForestGreen)

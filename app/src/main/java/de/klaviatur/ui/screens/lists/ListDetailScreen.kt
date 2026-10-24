@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.delay
 import de.klaviatur.R
 import de.klaviatur.ui.components.PieceCard
 import de.klaviatur.ui.theme.*
@@ -32,6 +33,22 @@ fun ListDetailScreen(
 
     var showAddPieceDialog by remember { mutableStateOf(false) }
     var showDeleteListDialog by remember { mutableStateOf(false) }
+
+    var initialCheckDone by remember { mutableStateOf(false) }
+    LaunchedEffect(lists) {
+        if (lists.isNotEmpty() || initialCheckDone) {
+            initialCheckDone = true
+        } else {
+            delay(300)
+            initialCheckDone = true
+        }
+    }
+
+    LaunchedEffect(list, initialCheckDone) {
+        if (initialCheckDone && list == null) {
+            onBack()
+        }
+    }
 
     if (list == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
