@@ -30,6 +30,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -696,6 +700,23 @@ fun SheetViewerScreen(
     var editAction by remember { mutableStateOf(EditAction.NONE) }
     var zoom by remember { mutableFloatStateOf(1f) }
     val hScrollState = rememberScrollState()
+    // Während des Pinchens nur Transform (kein Relayout); am Ende wird in `zoom` übernommen
+    var gScale by remember { mutableFloatStateOf(1f) }
+    var gOffX by remember { mutableFloatStateOf(0f) }
+    var gOffY by remember { mutableFloatStateOf(0f) }
+    var viewportOffset by remember { mutableStateOf(Offset.Zero) }
+    var commitTick by remember { mutableIntStateOf(0) }
+    val pendingScroll = remember { floatArrayOf(0f, 0f) }
+    // Scroll-Position nach dem Relayout mit neuem Zoom setzen (im selben Frame wie das Zurücksetzen des Transforms)
+    LaunchedEffect(commitTick) {
+        if (commitTick == 0) return@LaunchedEffect
+        withFrameNanos {
+            hScrollState.dispatchRawDelta(pendingScroll[0] - hScrollState.value)
+            scrollState.dispatchRawDelta(pendingScroll[1] - scrollState.value)
+            gOffX = 0f
+            gOffY = 0f
+        }
+    }
     var penColor by remember { mutableStateOf(Color.Black) }
     var highlighterColor by remember { mutableStateOf(Color(0xFFFFEB3B)) }
 
@@ -715,19 +736,6 @@ fun SheetViewerScreen(
 
     var isFullscreen by remember { mutableStateOf(false) }
 
-    fun getPageTopY(targetPageIndex: Int, pageWidthPx: Float): Int {
-        if (targetPageIndex <= 0 || sheetPages.isEmpty()) return 0
-        var yAcc = 0f
-        val spacingPx = with(density) { 24.dp.toPx() }
-        val maxIdx = targetPageIndex.coerceAtMost(sheetPages.size - 1)
-        for (i in 0 until maxIdx) {
-            val bmp = sheetPages[i].bitmap
-            val pageH = pageWidthPx * (bmp.height.toFloat() / bmp.width.coerceAtLeast(1).toFloat()) * zoom
-            yAcc += pageH + spacingPx
-        }
-        return yAcc.toInt()
-    }
-
     fun getCurrentPageIndex(pageWidthPx: Float): Int {
         if (sheetPages.isEmpty()) return 0
         val currentScrollY = scrollState.value
@@ -745,10 +753,14 @@ fun SheetViewerScreen(
         return sheetPages.size - 1
     }
 
+    val displayWidthPx = with(density) {
+        (context.resources.displayMetrics.widthPixels - 32.dp.roundToPx()).toFloat()
+    }.coerceAtLeast(100f)
+
     // Takte extrahieren & Gesamttaktanzahl synchronisieren
     val allMeasures = remember(sheetPages, piece?.pageAnnotations) {
         if (sheetPages.isEmpty()) emptyList()
-        else extractAllMeasures(sheetPages, piece?.pageAnnotations ?: emptyList())
+        else extractAllMeasures(sheetPages, piece?.pageAnnotations ?: emptyList(), displayWidthPx)
     }
     val totalCalculatedBars = allMeasures.size
     LaunchedEffect(totalCalculatedBars, piece) {
@@ -981,7 +993,7 @@ fun SheetViewerScreen(
                                                     }
                                                 }
                                                 viewModel.updatePageAnnotations(currentPiece, updatedAnnotations)
-                                                val updatedMeasures = extractAllMeasures(sheetPages, updatedAnnotations)
+                                                val updatedMeasures = extractAllMeasures(sheetPages, updatedAnnotations, displayWidthPx)
                                                 val newTotal = updatedMeasures.size
                                                 if (newTotal > 0 && currentPiece.totalBars != newTotal) {
                                                     viewModel.upsertPiece(currentPiece.copy(pageAnnotations = updatedAnnotations, totalBars = newTotal))
@@ -1016,12 +1028,22 @@ fun SheetViewerScreen(
                                         else EditAction.ADD_BARLINE
                                     }
                                 )
+                                ToolButton(
+                                    label = "Löschen",
+                                    icon = Icons.Default.Delete,
+                                    selected = editAction == EditAction.DELETE,
+                                    onClick = {
+                                        editAction = if (editAction == EditAction.DELETE) EditAction.NONE
+                                        else EditAction.DELETE
+                                    }
+                                )
                             }
                             Text(
                                 text = when (editAction) {
                                     EditAction.NONE -> "Linie antippen = auswählen · lange drücken und ziehen = verschieben"
                                     EditAction.ADD_SYSTEM -> "Auf die Mitte des neuen Systems tippen"
                                     EditAction.ADD_BARLINE -> "In ein System tippen, um einen Taktstrich zu setzen"
+                                    EditAction.DELETE -> "Auf ein System oder einen Taktstrich tippen, um ihn zu löschen"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextMuted,
@@ -1075,74 +1097,49 @@ fun SheetViewerScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .pointerInput(Unit) {
-                        // Pinch-Zoom: nur bei >= 2 Fingern eingreifen, ein Finger scrollt wie gewohnt
+                        // Pinch-Zoom: nur bei >= 2 Fingern eingreifen, ein Finger scrollt wie gewohnt.
+                        // Während der Geste nur graphicsLayer-Transform, Übernahme in `zoom` am Ende.
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                            var pinching = false
+
+                            fun commit() {
+                                if (!pinching) return
+                                pinching = false
+                                val oldZoom = zoom
+                                val newZoom = (oldZoom * gScale).coerceIn(1f, 4f)
+                                val g = newZoom / oldZoom
+                                val sx = hScrollState.value.toFloat()
+                                val sy = scrollState.value.toFloat()
+                                // Ziel-Scrollposition, damit der Inhalt unter den Fingern stehen bleibt
+                                pendingScroll[0] = (g * sx - gOffX).coerceAtLeast(0f)
+                                pendingScroll[1] = (g * sy - gOffY).coerceAtLeast(0f)
+                                // Rest-Transform, damit der erste Frame nach dem Relayout identisch aussieht
+                                gOffX += sx * (1f - g)
+                                gOffY += sy * (1f - g)
+                                gScale = 1f
+                                zoom = newZoom
+                                commitTick++
+                            }
+
                             do {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
                                 if (event.changes.count { it.pressed } >= 2) {
-                                    val zoomChange = event.calculateZoom()
+                                    pinching = true
+                                    val z = event.calculateZoom()
                                     val pan = event.calculatePan()
-                                    val centroid = event.calculateCentroid(useCurrent = false)
-                                    val oldZoom = zoom
-                                    val newZoom = (oldZoom * zoomChange).coerceIn(1f, 4f)
-                                    val ratio = newZoom / oldZoom
-                                    zoom = newZoom
-                                    // Inhalt unter den Fingern soll stehen bleiben
-                                    hScrollState.dispatchRawDelta(
-                                        (hScrollState.value + centroid.x) * (ratio - 1f) - pan.x
-                                    )
-                                    scrollState.dispatchRawDelta(
-                                        (scrollState.value + centroid.y) * (ratio - 1f) - pan.y
-                                    )
+                                    val c = event.calculateCentroid(useCurrent = false) - viewportOffset
+                                    val newS = (gScale * z).coerceIn(1f / zoom, 4f / zoom)
+                                    val k = newS / gScale
+                                    gOffX = k * gOffX + (1f - k) * c.x + pan.x
+                                    gOffY = k * gOffY + (1f - k) * c.y + pan.y
+                                    gScale = newS
                                     event.changes.forEach { it.consume() }
+                                } else if (pinching) {
+                                    commit()
                                 }
                             } while (event.changes.any { it.pressed })
-                        }
-                    }
-                    .pointerInput(sheetPages, selectedTool, zoom, pageWidthPx) {
-                        if (selectedTool != DrawingTool.SCROLL || sheetPages.size <= 1) return@pointerInput
-                        val thresholdPx = 25.dp.toPx()
-                        val minVelocityPxPerSec = 200f
-
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                            val startTime = System.currentTimeMillis()
-                            val startX = down.position.x
-                            val startY = down.position.y
-                            var handled = false
-
-                            do {
-                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                val change = event.changes.find { it.id == down.id } ?: break
-
-                                if (!handled && event.changes.count { it.pressed } == 1) {
-                                    val dx = change.position.x - startX
-                                    val dy = change.position.y - startY
-                                    val absDx = abs(dx)
-                                    val absDy = abs(dy)
-                                    val elapsedMs = (System.currentTimeMillis() - startTime).coerceAtLeast(1)
-
-                                    if (absDx > thresholdPx && absDx > absDy * 1.2f) {
-                                        val velocityX = (dx / elapsedMs.toFloat()) * 1000f
-                                        if (abs(velocityX) >= minVelocityPxPerSec || absDx > 45.dp.toPx()) {
-                                            handled = true
-                                            val currentPage = getCurrentPageIndex(pageWidthPx)
-                                            val targetPage = if (dx < 0f) {
-                                                (currentPage + 1).coerceAtMost(sheetPages.size - 1)
-                                            } else {
-                                                (currentPage - 1).coerceAtLeast(0)
-                                            }
-                                            if (targetPage != currentPage) {
-                                                coroutineScope.launch {
-                                                    val targetY = getPageTopY(targetPage, pageWidthPx)
-                                                    scrollState.animateScrollTo(targetY)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            } while (event.changes.any { it.pressed })
+                            commit()
                         }
                     }
             ) {
@@ -1256,7 +1253,20 @@ fun SheetViewerScreen(
                         }
                     }
 
-                    Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .onGloballyPositioned { viewportOffset = it.positionInParent() }
+                            .clipToBounds()
+                            .graphicsLayer {
+                                scaleX = gScale
+                                scaleY = gScale
+                                translationX = gOffX
+                                translationY = gOffY
+                                transformOrigin = TransformOrigin(0f, 0f)
+                            }
+                            .verticalScroll(scrollState)
+                    ) {
                         Column(
                             Modifier
                                 .horizontalScroll(hScrollState)
@@ -1276,11 +1286,6 @@ fun SheetViewerScreen(
                                     modifier = Modifier
                                         .width(with(density) { (pageWidthPx * zoom).toDp() })
                                         .wrapContentHeight()
-                                        .graphicsLayer {
-                                            scaleX = zoom
-                                            scaleY = zoom
-                                            transformOrigin = TransformOrigin(0f, 0f)
-                                        }
                                 ) {
                                     PdfPageCard(
                                         page = sheetPage,

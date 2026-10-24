@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -63,6 +65,11 @@ internal fun PdfPageCard(
     val sheetFileId = page.sheetFileId
     val pageIndex = page.pageIndex
     val bitmap = page.bitmap
+    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+    val sectionBadgePaint = remember { android.graphics.Paint().apply { style = android.graphics.Paint.Style.FILL; isAntiAlias = true } }
+    val sectionTextPaint = remember { android.graphics.Paint().apply { color = android.graphics.Color.WHITE; isAntiAlias = true; isFakeBoldText = true } }
+    val numTextPaint = remember { android.graphics.Paint().apply { isAntiAlias = true; isFakeBoldText = true } }
+    val numBgPaint = remember { android.graphics.Paint().apply { style = android.graphics.Paint.Style.FILL } }
 
     val currentAnnotation = pageAnnotations.find { it.sheetFileId == sheetFileId && it.pageIndex == pageIndex }
     val strokes = currentAnnotation?.strokes ?: emptyList()
@@ -113,7 +120,7 @@ internal fun PdfPageCard(
                 .wrapContentHeight()
         ) {
             Image(
-                bitmap = bitmap.asImageBitmap(),
+                bitmap = imageBitmap,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -228,6 +235,21 @@ internal fun PdfPageCard(
                                     } else {
                                         commitEdit(updated)
                                         selectedIndex = current.size
+                                    }
+                                }
+                                EditAction.DELETE -> {
+                                    val hit = hitTestLine(current, x, y, 36f / z)
+                                    if (hit != null) {
+                                        val kind = current[hit].lineKind()
+                                        if (kind == LineKind.PAGE_EDGE) {
+                                            Toast.makeText(context, "Seitenränder können nicht einzeln gelöscht werden.", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val updated = deleteLine(current, hit)
+                                            commitEdit(updated)
+                                            selectedIndex = null
+                                            val msg = if (kind == LineKind.BARLINE) "Taktstrich gelöscht." else "Notensystem gelöscht."
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
                                 EditAction.NONE -> {
@@ -361,17 +383,8 @@ internal fun PdfPageCard(
                                 val firstBarOnPage = pageSecMeasures.minOfOrNull { it.measureIndex }
                                 if (mBox.measureIndex == firstBarOnPage) {
                                     val secName = if (sec.name.isNotBlank()) sec.name else "Takt ${sec.startBar}–${sec.endBar}"
-                                    val badgePaint = android.graphics.Paint().apply {
-                                        color = sec.level.color.toInt()
-                                        style = android.graphics.Paint.Style.FILL
-                                        isAntiAlias = true
-                                    }
-                                    val badgeTextPaint = android.graphics.Paint().apply {
-                                        color = android.graphics.Color.WHITE
-                                        textSize = (11f / zoom).coerceIn(8f, 18f)
-                                        isAntiAlias = true
-                                        isFakeBoldText = true
-                                    }
+                                    val badgePaint = sectionBadgePaint.apply { color = sec.level.color.toInt() }
+                                    val badgeTextPaint = sectionTextPaint.apply { textSize = (11f / zoom).coerceIn(8f, 18f) }
                                     val textW = badgeTextPaint.measureText(secName)
                                     val bX = bLeft + 2f / zoom
                                     val bY = bTop + 2f / zoom
@@ -389,15 +402,12 @@ internal fun PdfPageCard(
                             }
 
                             // Taktnummern-Badge
-                            val textPaint = android.graphics.Paint().apply {
+                            val textPaint = numTextPaint.apply {
                                 color = if (isSelected) android.graphics.Color.WHITE else android.graphics.Color.DKGRAY
                                 textSize = (11f / zoom).coerceIn(8f, 20f)
-                                isAntiAlias = true
-                                isFakeBoldText = true
                             }
-                            val bgPaint = android.graphics.Paint().apply {
+                            val bgPaint = numBgPaint.apply {
                                 color = if (isSelected) android.graphics.Color.rgb(38, 166, 154) else android.graphics.Color.argb(180, 240, 240, 240)
-                                style = android.graphics.Paint.Style.FILL
                             }
                             val label = "${mBox.measureIndex}"
                             val textWidth = textPaint.measureText(label)

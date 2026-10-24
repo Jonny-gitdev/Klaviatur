@@ -155,7 +155,7 @@ internal fun refineStaffsByRegularity(
  * rot = Seitenrand). Koordinaten sind Pixel bei Zoom 1.
  * ════════════════════════════════════════════════════════════════════ */
 
-enum class EditAction { NONE, ADD_SYSTEM, ADD_BARLINE }
+enum class EditAction { NONE, ADD_SYSTEM, ADD_BARLINE, DELETE }
 
 internal val LINE_COLOR_SYSTEM_EDGE = android.graphics.Color.rgb(0, 220, 40).toLong()
 internal val LINE_COLOR_PAGE_EDGE = android.graphics.Color.rgb(240, 35, 35).toLong()
@@ -464,9 +464,73 @@ internal data class MeasureBox(
     val bottomY: Float
 )
 
+private data class EmptyKey(val l: Int, val t: Int, val r: Int, val b: Int, val slope: Int)
+private val staffCache = java.util.WeakHashMap<android.graphics.Bitmap, HashMap<EmptyKey, Boolean>>()
+
+/** true, wenn im Kasten Notenlinien liegen. Im Zweifel true, dann bleibt der Takt erhalten. */
+private fun hasStaffLines(
+    bmp: android.graphics.Bitmap,
+    scale: Float,
+    box: android.graphics.RectF,
+    slope: Float
+): Boolean {
+    val l = (box.left * scale).toInt().coerceIn(0, bmp.width - 1)
+    val r = (box.right * scale).toInt().coerceIn(l + 1, bmp.width)
+    val t = (box.top * scale).toInt().coerceIn(0, bmp.height - 1)
+    val b = (box.bottom * scale).toInt().coerceIn(t + 1, bmp.height)
+    val w = r - l
+    val h = b - t
+    if (w < 12 || h < 12) return true
+
+    val key = EmptyKey(l, t, r, b, (slope * 1000).toInt())
+    synchronized(staffCache) { staffCache[bmp]?.get(key)?.let { return it } }
+
+    val px = IntArray(w * h)
+    bmp.getPixels(px, 0, w, l, t, w, h)
+    val lum = IntArray(px.size) {
+        val p = px[it]
+        (((p shr 16) and 0xff) * 299 + ((p shr 8) and 0xff) * 587 + (p and 0xff) * 114) / 1000
+    }
+    // Papierhelligkeit = 90. Perzentil; Linien sind deutlich dunkler
+    val hist = IntArray(256)
+    for (v in lum) hist[v]++
+    var acc = 0
+    var paper = 255
+    for (v in 0..255) {
+        acc += hist[v]
+        if (acc >= lum.size * 0.9) { paper = v; break }
+    }
+
+    val result = if (paper < 100) {
+        true // zu dunkles Foto, nicht beurteilbar
+    } else {
+        val thr = paper * 0.82f
+        val pad = (abs(slope) * w).toInt() + 3
+        val proj = IntArray(h + 2 * pad + 2)
+        for (y in 0 until h) for (x in 0 until w) {
+            if (lum[y * w + x] < thr) {
+                val ay = Math.round(y - slope * (x - w / 2f)) + pad
+                if (ay in proj.indices) proj[ay]++
+            }
+        }
+        val need = max(8f, w * 0.25f)
+        var lines = 0
+        var prev = false
+        for (i in 0 until proj.size - 1) {
+            val on = proj[i] + proj[i + 1] >= need
+            if (on && !prev) lines++
+            prev = on
+        }
+        lines >= 2
+    }
+    synchronized(staffCache) { staffCache.getOrPut(bmp) { HashMap() }[key] = result }
+    return result
+}
+
 internal fun extractAllMeasures(
     sheetPages: List<SheetPage>,
-    pageAnnotations: List<PageAnnotation>
+    pageAnnotations: List<PageAnnotation>,
+    displayWidthPx: Float = 0f   // 0 = Prüfung aus
 ): List<MeasureBox> {
     val result = mutableListOf<MeasureBox>()
     var measureCounter = 1
@@ -484,6 +548,8 @@ internal fun extractAllMeasures(
 
             val sysTopY = min(topStroke.meanY(), bottomStroke.meanY())
             val sysBottomY = max(topStroke.meanY(), bottomStroke.meanY())
+            val dxTop = topStroke.points[1].x - topStroke.points[0].x
+            val sysSlope = if (abs(dxTop) > 1f) (topStroke.points[1].y - topStroke.points[0].y) / dxTop else 0f
 
             val pageEdges = strokes.filter { it.lineKind() == LineKind.PAGE_EDGE }
             var rawLeftX = pageEdges.map { s -> min(s.points[0].x, s.points[1].x) }
@@ -539,6 +605,10 @@ internal fun extractAllMeasures(
                 val mTop = min(topStroke.yAt(mLeft), topStroke.yAt(mRight))
                 val mBottom = max(bottomStroke.yAt(mLeft), bottomStroke.yAt(mRight))
                 val rect = android.graphics.RectF(mLeft, mTop, mRight, mBottom)
+                val isEdgeBox = m == 0 || m == finalXList.size - 2
+                if (displayWidthPx > 0f && isEdgeBox &&
+                    !hasStaffLines(page.bitmap, page.bitmap.width / displayWidthPx, rect, sysSlope)
+                ) continue
 
                 result.add(
                     MeasureBox(
