@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Klaviatur</string>
+    <string name="app_name">Repertoire Manager</string>
 
     <!-- Navigation -->
     <string name="nav_repertoire">Repertoire</string>
@@ -191,8 +191,8 @@
     <string name="start_tutorial_btn">Tutorial starten</string>
 
     <!-- Tutorial / Onboarding -->
-    <string name="tutorial_welcome_title">Willkommen bei Klaviatur! 🎹</string>
-    <string name="tutorial_welcome_desc">Klaviatur hilft dir, dein Musik-Repertoire zu verwalten, effektiv zu üben und Akkordblätter übersichtlich zu organisieren.</string>
+    <string name="tutorial_welcome_title">Willkommen bei Repertoire Manager! 🎶</string>
+    <string name="tutorial_welcome_desc">Repertoire Manager hilft dir, dein Musik-Repertoire zu verwalten, effektiv zu üben und Akkordblätter übersichtlich zu organisieren.</string>
     <string name="tutorial_repertoire_title">1. Repertoire &amp; Stücke</string>
     <string name="tutorial_repertoire_desc">Erfasse deine Stücke mit Komponist, Epoche, Schwierigkeit und Taktanzahl. Unterteile Stücke in Abschnitte und verfolge deinen Lernfortschritt.</string>
     <string name="tutorial_sessions_title">2. Übungssessions &amp; Timer</string>
@@ -238,8 +238,8 @@
     <string name="start_practice_session">Übung starten</string>
 
     <!-- Guided Tutorial (ui/tutorial) -->
-    <string name="tut_welcome_title">Willkommen bei Klaviatur!</string>
-    <string name="tut_welcome_text">Klaviatur ist dein persönlicher Begleiter für dein Musikrepertoire: Du verwaltest deine Stücke, behältst deinen Lernfortschritt Takt für Takt im Blick, übst mit Timer und Metronom und sammelst deine Akkordblätter an einem Ort. In dieser Tour zeige ich dir Schritt für Schritt alle wichtigen Funktionen – und die wichtigsten probierst du direkt selbst aus.</string>
+    <string name="tut_welcome_title">Willkommen bei Repertoire Manager!</string>
+    <string name="tut_welcome_text">Repertoire Manager ist dein persönlicher Begleiter für dein Musikrepertoire: Du verwaltest deine Stücke, behältst deinen Lernfortschritt Takt für Takt im Blick, übst mit Timer und Metronom und sammelst deine Akkordblätter an einem Ort. In dieser Tour zeige ich dir Schritt für Schritt alle wichtigen Funktionen – und die wichtigsten probierst du direkt selbst aus.</string>
     <string name="tut_welcome_language">Sprache wählen</string>
     <string name="tut_welcome_language_hint">Du kannst die Sprache später jederzeit in den Einstellungen ändern.</string>
     <string name="tut_welcome_start">Tour starten</string>
@@ -312,7 +312,7 @@
     <string name="tut_b_create_sections_title">Abschnitte erstellen</string>
     <string name="tut_b_create_sections_text">Wechsle zurück zu „Verschieben“. Jetzt kannst du Takte antippen (oder lange drücken und über mehrere Takte ziehen), um sie auszuwählen. Oben erscheint die Leiste mit „Abschnitt erstellen“: Vergib Namen und Lernstand – und der Abschnitt erscheint farbig in den Noten, im Fortschrittsbalken und auf der Stückseite.</string>
     <string name="tut_c_ask_title">Akkorde – brauchst du das?</string>
-    <string name="tut_c_ask_text">Neben Noten verwaltet Klaviatur auch Akkordblätter (Chord Sheets) für Gitarre, Klavier &amp; Co. Möchtest du diese Funktion nutzen? Wenn nicht, ist das Tutorial hier zu Ende – und ich wünsche dir viel Spaß mit der App!</string>
+    <string name="tut_c_ask_text">Neben Noten verwaltet Repertoire Manager auch Akkordblätter (Chord Sheets) für Gitarre, Klavier &amp; Co. Möchtest du diese Funktion nutzen? Wenn nicht, ist das Tutorial hier zu Ende – und ich wünsche dir viel Spaß mit der App!</string>
     <string name="tut_c_add_title">Songs hinzufügen</string>
     <string name="tut_c_add_text">Über das Plus legst du Akkordblätter an. Es gibt drei Wege: einen ganzen Ordner importieren, Text von Ultimate Guitar einfügen oder ein Blatt manuell im ChordPro-Format schreiben (z. B. [C]Text). Oben suchst du Songs, markierst Favoriten und sortierst sie in Playlists. Im Songblatt scrollt die App auf Wunsch automatisch mit. Als Nächstes schauen wir uns den Ultimate-Guitar-Import an.</string>
     <string name="tut_c_ug_meta_title">Ultimate Guitar: Titel &amp; Interpret</string>
@@ -322,7 +322,7 @@
     <string name="tut_c_ug_save_title">Speichern</string>
     <string name="tut_c_ug_save_text">Mit „Speichern“ landet der Song in deiner Sammlung und ist über den Filter „UG Import“ schnell wiederzufinden. Wir speichern jetzt nichts – tippe auf „Weiter“.</string>
     <string name="tut_c_db_title">Ganze Datenbanken importieren</string>
-    <string name="tut_c_db_text">Mit dem Ordner-Symbol importierst du ganze Sammlungen auf einmal: Wähle einen Ordner mit Songdateien in den Formaten .pro, .crd oder .chopro – die App durchsucht auch alle Unterordner und legt einen Index an (neu aufbauen kannst du ihn in den Einstellungen). Aus Urheberrechtsgründen liefert Klaviatur keine Songsammlungen mit. Bekannt ist z. B. das OLGA-Archiv (OnLine Guitar Archive); ähnliche Sammlungen findest du im Netz. Beachte dabei die Nutzungsbedingungen der jeweiligen Archive. Lade eine Sammlung herunter, entpacke sie und wähle den Ordner hier aus.</string>
+    <string name="tut_c_db_text">Mit dem Ordner-Symbol importierst du ganze Sammlungen auf einmal: Wähle einen Ordner mit Songdateien in den Formaten .pro, .crd oder .chopro – die App durchsucht auch alle Unterordner und legt einen Index an (neu aufbauen kannst du ihn in den Einstellungen). Aus Urheberrechtsgründen liefert Repertoire Manager keine Songsammlungen mit. Bekannt ist z. B. das OLGA-Archiv (OnLine Guitar Archive); ähnliche Sammlungen findest du im Netz. Beachte dabei die Nutzungsbedingungen der jeweiligen Archive. Lade eine Sammlung herunter, entpacke sie und wähle den Ordner hier aus.</string>
     <string name="tut_finish_title">Das war\'s! 🎉</string>
-    <string name="tut_finish_text">Du kennst jetzt die wichtigsten Funktionen von Klaviatur. Viel Spaß beim Üben und Musizieren! Die Tour kannst du jederzeit in den Einstellungen unter „Tutorial starten“ erneut ansehen.</string>
+    <string name="tut_finish_text">Du kennst jetzt die wichtigsten Funktionen von Repertoire Manager. Viel Spaß beim Üben und Musizieren! Die Tour kannst du jederzeit in den Einstellungen unter „Tutorial starten“ erneut ansehen.</string>
 </resources>

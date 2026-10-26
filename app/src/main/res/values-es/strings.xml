@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Klaviatur</string>
+    <string name="app_name">Repertoire Manager</string>
 
     <!-- Navigation -->
     <string name="nav_repertoire">Repertorio</string>
@@ -191,8 +191,8 @@
     <string name="start_tutorial_btn">Iniciar tutorial</string>
 
     <!-- Tutorial / Onboarding -->
-    <string name="tutorial_welcome_title">¡Bienvenido a Klaviatur! 🎹</string>
-    <string name="tutorial_welcome_desc">Klaviatur te ayuda a gestionar tu repertorio musical, practicar eficazmente y organizar hojas de acordes.</string>
+    <string name="tutorial_welcome_title">¡Bienvenido a Repertoire Manager! 🎶</string>
+    <string name="tutorial_welcome_desc">Repertoire Manager te ayuda a gestionar tu repertorio musical, practicar eficazmente y organizar hojas de acordes.</string>
     <string name="tutorial_repertoire_title">1. Repertorio y piezas</string>
     <string name="tutorial_repertoire_desc">Registra tus piezas con compositor, época, dificultad y compases. Divide las piezas en secciones y sigue tu progreso.</string>
     <string name="tutorial_sessions_title">2. Sesiones de práctica y temporizador</string>
@@ -238,8 +238,8 @@
     <string name="start_practice_session">Iniciar práctica</string>
 
     <!-- Guided Tutorial (ui/tutorial) -->
-    <string name="tut_welcome_title">¡Bienvenido a Klaviatur!</string>
-    <string name="tut_welcome_text">Klaviatur es tu compañero para gestionar tu repertorio musical: organiza tus piezas, sigue tu progreso compás a compás, practica con temporizador y metrónomo y reúne tus hojas de acordes en un solo lugar. Este recorrido te enseña paso a paso las funciones importantes – y las principales las probarás tú mismo.</string>
+    <string name="tut_welcome_title">¡Bienvenido a Repertoire Manager!</string>
+    <string name="tut_welcome_text">Repertoire Manager es tu compañero para gestionar tu repertorio musical: organiza tus piezas, sigue tu progreso compás a compás, practica con temporizador y metrónomo y reúne tus hojas de acordes en un solo lugar. Este recorrido te enseña paso a paso las funciones importantes – y las principales las probarás tú mismo.</string>
     <string name="tut_welcome_language">Elegir idioma</string>
     <string name="tut_welcome_language_hint">Puedes cambiar el idioma en cualquier momento en Ajustes.</string>
     <string name="tut_welcome_start">Empezar el recorrido</string>
@@ -312,7 +312,7 @@
     <string name="tut_b_create_sections_title">Crear secciones</string>
     <string name="tut_b_create_sections_text">Vuelve a «Verschieben» (mover). Ahora puedes tocar compases (o mantener pulsado y arrastrar sobre varios compases) para seleccionarlos. Arriba aparece una barra con «Abschnitt erstellen» (crear sección): ponle un nombre y un nivel, y la sección aparece en color en la partitura, en la barra de progreso y en la página de la pieza.</string>
     <string name="tut_c_ask_title">Acordes: ¿los necesitas?</string>
-    <string name="tut_c_ask_text">Además de partituras, Klaviatur también gestiona hojas de acordes para guitarra, piano y más. ¿Quieres usar esta función? Si no, el tutorial termina aquí, ¡y te deseo mucha diversión con la app!</string>
+    <string name="tut_c_ask_text">Además de partituras, Repertoire Manager también gestiona hojas de acordes para guitarra, piano y más. ¿Quieres usar esta función? Si no, el tutorial termina aquí, ¡y te deseo mucha diversión con la app!</string>
     <string name="tut_c_add_title">Añadir canciones</string>
     <string name="tut_c_add_text">El botón de más añade hojas de acordes. Hay tres vías: importar una carpeta entera, pegar texto de Ultimate Guitar o escribir una hoja manualmente en formato ChordPro (p. ej. [C]texto). Arriba buscas canciones, marcas favoritas y las ordenas en listas de reproducción. En la hoja de una canción la app puede desplazarse automáticamente. Veamos ahora la importación desde Ultimate Guitar.</string>
     <string name="tut_c_ug_meta_title">Ultimate Guitar: título e intérprete</string>
@@ -322,7 +322,7 @@
     <string name="tut_c_ug_save_title">Guardar</string>
     <string name="tut_c_ug_save_text">«Guardar» añade la canción a tu colección y la encuentras rápido con el filtro «Importar UG». Ahora no guardamos nada: toca «Siguiente».</string>
     <string name="tut_c_db_title">Importar bases de datos enteras</string>
-    <string name="tut_c_db_text">El icono de carpeta importa colecciones enteras de una vez: elige una carpeta con archivos de canciones en formato .pro, .crd o .chopro; la app también recorre todas las subcarpetas y crea un índice (puedes reconstruirlo en Ajustes). Por motivos de derechos de autor, Klaviatur no incluye colecciones de canciones. Un ejemplo conocido es el archivo OLGA (OnLine Guitar Archive); en internet encontrarás colecciones similares. Respeta las condiciones de uso de cada archivo. Descarga una colección, descomprímela y selecciona aquí la carpeta.</string>
+    <string name="tut_c_db_text">El icono de carpeta importa colecciones enteras de una vez: elige una carpeta con archivos de canciones en formato .pro, .crd o .chopro; la app también recorre todas las subcarpetas y crea un índice (puedes reconstruirlo en Ajustes). Por motivos de derechos de autor, Repertoire Manager no incluye colecciones de canciones. Un ejemplo conocido es el archivo OLGA (OnLine Guitar Archive); en internet encontrarás colecciones similares. Respeta las condiciones de uso de cada archivo. Descarga una colección, descomprímela y selecciona aquí la carpeta.</string>
     <string name="tut_finish_title">¡Eso es todo! 🎉</string>
-    <string name="tut_finish_text">Ya conoces las funciones más importantes de Klaviatur. ¡Que disfrutes practicando y haciendo música! Puedes volver a ver este recorrido en cualquier momento en Ajustes, en «Iniciar tutorial».</string>
+    <string name="tut_finish_text">Ya conoces las funciones más importantes de Repertoire Manager. ¡Que disfrutes practicando y haciendo música! Puedes volver a ver este recorrido en cualquier momento en Ajustes, en «Iniciar tutorial».</string>
 </resources>

@@ -1,14 +1,16 @@
-# Klaviatur
+# Repertoire Manager
 
-An Android application for piano players to manage their repertoire, practice sessions, and chords.
+An Android application for musicians to manage their repertoire, practice sessions, sheet music, and chords.
 
 ## Features
 
 - **Repertoire Management**: Keep track of the pieces you are learning and have mastered.
-- **Practice Sessions**: Log and monitor your practice progress.
-- **Chord Library**: Quick access to chord references.
+- **Practice Sessions**: Log and monitor your practice progress with built-in metronome.
+- **Sheet Music & Chord Library**: View PDFs and ChordPro song sheets.
 - **Custom Lists**: Organize your pieces into sets or categories.
-- **Statistics**: Visualize your practice data.
+- **OpenOpus Integration**: Easily search classical compositions and composers.
+- **Statistics**: Visualize your practice data over time.
+- **Local Backup**: Securely backup and restore your database locally.
 
 ## Tech Stack
 

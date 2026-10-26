@@ -5,7 +5,7 @@ import dagger.hilt.android.HiltAndroidApp
 import de.klaviatur.util.AppSettings
 
 @HiltAndroidApp
-class KlaviatürApp : Application() {
+class RepertoireManagerApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppSettings.init(this)

@@ -61,9 +61,9 @@ import de.klaviatur.ui.screens.settings.SettingsScreen
 import de.klaviatur.ui.screens.stats.StatsScreen
 import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.ForestGreenBg
-import de.klaviatur.ui.theme.KlaviatürTheme
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
+import de.klaviatur.ui.theme.RepertoireManagerTheme
 import de.klaviatur.ui.theme.TextHint
 import de.klaviatur.util.AppSettings
 import de.klaviatur.util.MetronomeManager
@@ -85,8 +85,8 @@ class MainActivity : ComponentActivity() {
                 LocalContext provides localizedContext,
                 LocalConfiguration provides localizedConfig
             ) {
-                KlaviatürTheme {
-                    KlaviaturAppUI(metronomeManager, pieceRepository)
+                RepertoireManagerTheme {
+                    RepertoireManagerAppUI(metronomeManager, pieceRepository)
                 }
             }
         }
@@ -140,7 +140,7 @@ private val bottomNavItems = listOf(
 )
 
 @Composable
-private fun KlaviaturAppUI(metronomeManager: MetronomeManager, pieceRepository: PieceRepository) {
+private fun RepertoireManagerAppUI(metronomeManager: MetronomeManager, pieceRepository: PieceRepository) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

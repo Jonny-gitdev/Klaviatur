@@ -1,1 +1,1 @@
-Initial release of Klaviatur.
+Initial release of Repertoire Manager.

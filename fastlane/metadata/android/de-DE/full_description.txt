@@ -1,4 +1,4 @@
-Klaviatur ist eine datenschutzfreundliche Android-App für Pianisten und Musiker zur Verwaltung von Repertoire, Übungs-Sessions und Akkordblättern.
+Repertoire Manager ist eine datenschutzfreundliche Android-App für Musiker zur Verwaltung von Repertoire, Übungs-Sessions und Akkordblättern.
 
 Funktionen:
 • Repertoire-Verwaltung: Behalte den Überblick über gelernte und neue Musikstücke.

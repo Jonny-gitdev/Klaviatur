@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Klaviatur</string>
+    <string name="app_name">Repertoire Manager</string>
 
     <!-- Navigation -->
     <string name="nav_repertoire">Répertoire</string>
@@ -191,8 +191,8 @@
     <string name="start_tutorial_btn">Lancer le tutoriel</string>
 
     <!-- Tutorial / Onboarding -->
-    <string name="tutorial_welcome_title">Bienvenue sur Klaviatur ! 🎹</string>
-    <string name="tutorial_welcome_desc">Klaviatur vous aide à gérer votre répertoire musical, pratiquer efficacement et organiser vos partitions d\'accords.</string>
+    <string name="tutorial_welcome_title">Bienvenue sur Repertoire Manager ! 🎶</string>
+    <string name="tutorial_welcome_desc">Repertoire Manager vous aide à gérer votre répertoire musical, pratiquer efficacement et organiser vos partitions d\'accords.</string>
     <string name="tutorial_repertoire_title">1. Répertoire &amp; Morceaux</string>
     <string name="tutorial_repertoire_desc">Enregistrez vos morceaux avec compositeur, époque, difficulté et mesures. Suivez vos progrès par section.</string>
     <string name="tutorial_sessions_title">2. Sessions &amp; Minuteur</string>
@@ -238,8 +238,8 @@
     <string name="start_practice_session">Démarrer la pratique</string>
 
     <!-- Guided Tutorial (ui/tutorial) -->
-    <string name="tut_welcome_title">Bienvenue dans Klaviatur !</string>
-    <string name="tut_welcome_text">Klaviatur est votre compagnon pour gérer votre répertoire musical : organisez vos morceaux, suivez votre progression mesure par mesure, travaillez avec un minuteur et un métronome et rassemblez vos grilles d\'accords au même endroit. Cette visite vous présente pas à pas les fonctions importantes – et vous essaierez les principales vous-même.</string>
+    <string name="tut_welcome_title">Bienvenue dans Repertoire Manager !</string>
+    <string name="tut_welcome_text">Repertoire Manager est votre compagnon pour gérer votre répertoire musical : organisez vos morceaux, suivez votre progression mesure par mesure, travaillez avec un minuteur et un métronome et rassemblez vos grilles d\'accords au même endroit. Cette visite vous présente pas à pas les fonctions importantes – et vous essaierez les principales vous-même.</string>
     <string name="tut_welcome_language">Choisir la langue</string>
     <string name="tut_welcome_language_hint">Vous pouvez changer la langue à tout moment dans les paramètres.</string>
     <string name="tut_welcome_start">Commencer la visite</string>
@@ -312,7 +312,7 @@
     <string name="tut_b_create_sections_title">Créer des sections</string>
     <string name="tut_b_create_sections_text">Revenez à « Verschieben » (déplacer). Vous pouvez maintenant appuyer sur des mesures (ou faire un appui long et glisser sur plusieurs mesures) pour les sélectionner. Une barre avec « Abschnitt erstellen » (créer une section) apparaît en haut : donnez un nom et un niveau – la section s\'affiche alors en couleur dans la partition, dans la barre de progression et sur la page du morceau.</string>
     <string name="tut_c_ask_title">Accords – en avez-vous besoin ?</string>
-    <string name="tut_c_ask_text">Outre les partitions, Klaviatur gère aussi des feuilles d\'accords pour guitare, piano et autres. Souhaitez-vous utiliser cette fonction ? Sinon, le tutoriel s\'arrête ici – et je vous souhaite beaucoup de plaisir avec l\'application !</string>
+    <string name="tut_c_ask_text">Outre les partitions, Repertoire Manager gère aussi des feuilles d\'accords pour guitare, piano et autres. Souhaitez-vous utiliser cette fonction ? Sinon, le tutoriel s\'arrête ici – et je vous souhaite beaucoup de plaisir avec l\'application !</string>
     <string name="tut_c_add_title">Ajouter des chansons</string>
     <string name="tut_c_add_text">Le plus permet d\'ajouter des feuilles d\'accords. Il y a trois voies : importer un dossier entier, coller du texte depuis Ultimate Guitar ou écrire une feuille manuellement au format ChordPro (p. ex. [C]texte). En haut, vous cherchez des chansons, marquez des favoris et les classez dans des playlists. Dans une feuille, l\'application peut défiler automatiquement. Voyons maintenant l\'import Ultimate Guitar.</string>
     <string name="tut_c_ug_meta_title">Ultimate Guitar : titre et interprète</string>
@@ -322,7 +322,7 @@
     <string name="tut_c_ug_save_title">Enregistrer</string>
     <string name="tut_c_ug_save_text">« Enregistrer » ajoute la chanson à votre collection ; vous la retrouvez vite avec le filtre « Import UG ». Nous n\'enregistrons rien maintenant – appuyez sur « Suivant ».</string>
     <string name="tut_c_db_title">Importer des bases entières</string>
-    <string name="tut_c_db_text">L\'icône de dossier importe des collections entières d\'un coup : choisissez un dossier contenant des fichiers de chansons aux formats .pro, .crd ou .chopro – l\'application parcourt aussi tous les sous-dossiers et crée un index (vous pouvez le reconstruire dans les paramètres). Pour des raisons de droit d\'auteur, Klaviatur ne fournit aucune collection de chansons. L\'archive OLGA (OnLine Guitar Archive) en est un exemple connu ; vous trouverez des collections similaires en ligne. Respectez les conditions d\'utilisation de chaque archive. Téléchargez une collection, décompressez-la et sélectionnez le dossier ici.</string>
+    <string name="tut_c_db_text">L\'icône de dossier importe des collections entières d\'un coup : choisissez un dossier contenant des fichiers de chansons aux formats .pro, .crd ou .chopro – l\'application parcourt aussi tous les sous-dossiers et crée un index (vous pouvez le reconstruire dans les paramètres). Pour des raisons de droit d\'auteur, Repertoire Manager ne fournit aucune collection de chansons. L\'archive OLGA (OnLine Guitar Archive) en est un exemple connu ; vous trouverez des collections similaires en ligne. Respectez les conditions d\'utilisation de chaque archive. Téléchargez une collection, décompressez-la et sélectionnez le dossier ici.</string>
     <string name="tut_finish_title">C\'est tout ! 🎉</string>
-    <string name="tut_finish_text">Vous connaissez maintenant les principales fonctions de Klaviatur. Bon travail et bonne musique ! Vous pouvez revoir cette visite à tout moment dans les paramètres, sous « Lancer le tutoriel ».</string>
+    <string name="tut_finish_text">Vous connaissez maintenant les principales fonctions de Repertoire Manager. Bon travail et bonne musique ! Vous pouvez revoir cette visite à tout moment dans les paramètres, sous « Lancer le tutoriel ».</string>
 </resources>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Klaviatur</string>
+    <string name="app_name">Repertoire Manager</string>
 
     <!-- Navigation -->
     <string name="nav_repertoire">Repertoire</string>
@@ -191,8 +191,8 @@
     <string name="start_tutorial_btn">Start Tutorial</string>
 
     <!-- Tutorial / Onboarding -->
-    <string name="tutorial_welcome_title">Welcome to Klaviatur! 🎹</string>
-    <string name="tutorial_welcome_desc">Klaviatur helps you manage your music repertoire, practice effectively, and organize chord sheets.</string>
+    <string name="tutorial_welcome_title">Welcome to Repertoire Manager! 🎶</string>
+    <string name="tutorial_welcome_desc">Repertoire Manager helps you manage your music repertoire, practice effectively, and organize chord sheets.</string>
     <string name="tutorial_repertoire_title">1. Repertoire &amp; Pieces</string>
     <string name="tutorial_repertoire_desc">Track your pieces with composer, epoch, difficulty, and total bars. Divide pieces into sections and monitor your progress.</string>
     <string name="tutorial_sessions_title">2. Practice Sessions &amp; Timer</string>
@@ -238,8 +238,8 @@
     <string name="start_practice_session">Start Practice</string>
 
     <!-- Guided Tutorial (ui/tutorial) -->
-    <string name="tut_welcome_title">Welcome to Klaviatur!</string>
-    <string name="tut_welcome_text">Klaviatur is your personal companion for your music repertoire: manage your pieces, track your learning progress bar by bar, practice with a timer and metronome, and keep all your chord sheets in one place. This tour walks you through the most important features step by step – and you\'ll try the key ones yourself.</string>
+    <string name="tut_welcome_title">Welcome to Repertoire Manager!</string>
+    <string name="tut_welcome_text">Repertoire Manager is your personal companion for your music repertoire: manage your pieces, track your learning progress bar by bar, practice with a timer and metronome, and keep all your chord sheets in one place. This tour walks you through the most important features step by step – and you\'ll try the key ones yourself.</string>
     <string name="tut_welcome_language">Choose language</string>
     <string name="tut_welcome_language_hint">You can change the language at any time in Settings.</string>
     <string name="tut_welcome_start">Start the tour</string>
@@ -312,7 +312,7 @@
     <string name="tut_b_create_sections_title">Creating sections</string>
     <string name="tut_b_create_sections_text">Switch back to “Verschieben” (move). Now you can tap bars (or long-press and drag across several bars) to select them. A bar with “Abschnitt erstellen” (create section) appears at the top: give it a name and a learning level – and the section shows up in color in the score, in the progress bar and on the piece page.</string>
     <string name="tut_c_ask_title">Chords – do you need them?</string>
-    <string name="tut_c_ask_text">Besides sheet music, Klaviatur also manages chord sheets for guitar, piano and more. Do you want to use this feature? If not, the tutorial ends here – and I wish you lots of fun with the app!</string>
+    <string name="tut_c_ask_text">Besides sheet music, Repertoire Manager also manages chord sheets for guitar, piano and more. Do you want to use this feature? If not, the tutorial ends here – and I wish you lots of fun with the app!</string>
     <string name="tut_c_add_title">Adding songs</string>
     <string name="tut_c_add_text">The plus button adds chord sheets. There are three ways: import a whole folder, paste text from Ultimate Guitar, or write a sheet manually in ChordPro format (e.g. [C]text). At the top you search for songs, mark favorites and sort them into playlists. In a song sheet the app can scroll along automatically. Next, let\'s look at the Ultimate Guitar import.</string>
     <string name="tut_c_ug_meta_title">Ultimate Guitar: title &amp; artist</string>
@@ -322,7 +322,7 @@
     <string name="tut_c_ug_save_title">Save</string>
     <string name="tut_c_ug_save_text">“Save” puts the song into your collection, and you can quickly find it again with the “UG Import” filter. We won\'t save anything now – just tap “Next”.</string>
     <string name="tut_c_db_title">Importing whole databases</string>
-    <string name="tut_c_db_text">The folder icon imports whole collections at once: pick a folder with song files in .pro, .crd or .chopro format – the app also searches all subfolders and builds an index (you can rebuild it in Settings). For copyright reasons Klaviatur does not ship any song collections. One well-known example is the OLGA archive (OnLine Guitar Archive); you\'ll find similar collections online. Please respect the terms of use of each archive. Download a collection, unpack it and select the folder here.</string>
+    <string name="tut_c_db_text">The folder icon imports whole collections at once: pick a folder with song files in .pro, .crd or .chopro format – the app also searches all subfolders and builds an index (you can rebuild it in Settings). For copyright reasons Repertoire Manager does not ship any song collections. One well-known example is the OLGA archive (OnLine Guitar Archive); you\'ll find similar collections online. Please respect the terms of use of each archive. Download a collection, unpack it and select the folder here.</string>
     <string name="tut_finish_title">That\'s it! 🎉</string>
-    <string name="tut_finish_text">You now know the most important features of Klaviatur. Have fun practicing and making music! You can replay this tour at any time in Settings under “Start Tutorial”.</string>
+    <string name="tut_finish_text">You now know the most important features of Repertoire Manager. Have fun practicing and making music! You can replay this tour at any time in Settings under “Start Tutorial”.</string>
 </resources>

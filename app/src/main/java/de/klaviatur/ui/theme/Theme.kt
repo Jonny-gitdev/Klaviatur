@@ -60,7 +60,7 @@ private val LightColors = lightColorScheme(
 
 // ── Typography ────────────────────────────────────────────────────────────────
 
-val KlaviatürTypography = Typography(
+val RepertoireManagerTypography = Typography(
     headlineLarge  = TextStyle(fontSize = 26.sp, fontWeight = FontWeight.W500, color = TextPrimary, letterSpacing = (-0.5).sp),
     headlineMedium = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.W500, color = TextPrimary, letterSpacing = (-0.3).sp),
     titleLarge     = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.W500, color = TextPrimary),
@@ -74,10 +74,10 @@ val KlaviatürTypography = Typography(
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
 @Composable
-fun KlaviatürTheme(content: @Composable () -> Unit) {
+fun RepertoireManagerTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = LightColors,
-        typography  = KlaviatürTypography,
+        typography  = RepertoireManagerTypography,
         content     = content
     )
 }

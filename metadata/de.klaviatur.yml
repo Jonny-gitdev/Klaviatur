@@ -5,10 +5,10 @@ AuthorName: Jonas
 SourceCode: https://github.com/Jonny-gitdev/Klaviatur
 IssueTracker: https://github.com/Jonny-gitdev/Klaviatur/issues
 
-AutoName: Klaviatur
+AutoName: Repertoire Manager
 Summary: Repertoire, practice session, and chord management app for musicians
 Description: |-
-  Klaviatur is a privacy-friendly Android application designed for piano players and musicians to manage their repertoire, practice sessions, and chord sheets.
+  Repertoire Manager is a privacy-friendly Android application designed for musicians to manage their repertoire, practice sessions, and chord sheets.
 
   Features:
   * Repertoire Management: Track pieces you are learning and have mastered.
