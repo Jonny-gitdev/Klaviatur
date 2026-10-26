@@ -11,7 +11,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "de.klaviatur"
+        applicationId = "de.repertoiremanager"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
