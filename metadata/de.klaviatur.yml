@@ -1,0 +1,35 @@
+Categories:
+  - Multimedia
+License: MIT
+AuthorName: Jonas
+SourceCode: https://github.com/Jonny-gitdev/Klaviatur
+IssueTracker: https://github.com/Jonny-gitdev/Klaviatur/issues
+
+AutoName: Klaviatur
+Summary: Repertoire, practice session, and chord management app for musicians
+Description: |-
+  Klaviatur is a privacy-friendly Android application designed for piano players and musicians to manage their repertoire, practice sessions, and chord sheets.
+
+  Features:
+  * Repertoire Management: Track pieces you are learning and have mastered.
+  * Practice Sessions: Log practice progress with built-in metronome.
+  * Sheet Music & Chord Library: View PDFs and ChordPro song sheets.
+  * Custom Lists: Organize your pieces into sets or categories.
+  * OpenOpus Integration: Easily search classical compositions and composers.
+  * Statistics: Visualize your practice habits over time.
+
+RepoType: git
+Repo: https://github.com/Jonny-gitdev/Klaviatur.git
+
+Builds:
+  - versionName: '1.0'
+    versionCode: 1
+    commit: v1.0.0
+    subdir: app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: '1.0'
+CurrentCode: 1

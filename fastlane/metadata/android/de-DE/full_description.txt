@@ -1,0 +1,10 @@
+Klaviatur ist eine datenschutzfreundliche Android-App für Pianisten und Musiker zur Verwaltung von Repertoire, Übungs-Sessions und Akkordblättern.
+
+Funktionen:
+• Repertoire-Verwaltung: Behalte den Überblick über gelernte und neue Musikstücke.
+• Übungseinheiten: Protokolliere deine Übungsfortschritte mit integriertem Metronom.
+• Noten- & Akkord-Bibliothek: PDF-Noten und ChordPro-Songs anzeigen und bearbeiten.
+• Eigene Listen: Organisiere Stücke in Setlists oder Kategorien.
+• OpenOpus-Anbindung: Durchsuche klassische Komponisten und Werke.
+• Statistiken: Visualisiere deine Übungsgewohnheiten im Zeitverlauf.
+• Lokales Backup: Sichere und wiederherstelle deine Daten lokal auf dem Gerät.

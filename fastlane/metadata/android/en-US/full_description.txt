@@ -1,0 +1,10 @@
+Klaviatur is a privacy-friendly Android application designed for piano players and musicians to manage their repertoire, practice sessions, and chord sheets.
+
+Features:
+• Repertoire Management: Track pieces you are learning and have mastered.
+• Practice Sessions: Log and monitor your practice progress with built-in metronome.
+• Sheet Music & Chord Library: View PDFs and ChordPro song sheets.
+• Custom Lists: Organize your pieces into sets or categories.
+• OpenOpus Integration: Easily search classical compositions and composers.
+• Statistics: Visualize your practice habits over time.
+• Local Backup: Easily backup and restore your database locally.
