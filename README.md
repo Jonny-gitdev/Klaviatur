@@ -21,11 +21,6 @@ An Android application for musicians to manage their repertoire, practice sessio
 - **Retrofit & Gson**: Networking and JSON parsing.
 - **DataStore**: Preference storage.
 
-## Getting Started
-
-1. Clone the repository.
-2. Open the project in Android Studio.
-3. Build and run on an emulator or physical device.
 
 ## License
 
