@@ -38,6 +38,8 @@ fun SessionsScreen(
     val totalMinutes by viewModel.totalMinutes.collectAsState()
     val streak by viewModel.streak.collectAsState()
     val isSessionActive by viewModel.isSessionActive.collectAsState()
+    val isPaused by viewModel.isPaused.collectAsState()
+    val elapsedSeconds by viewModel.elapsedSeconds.collectAsState()
     val totalHours = totalMinutes / 60f
 
     Scaffold(
@@ -84,10 +86,12 @@ fun SessionsScreen(
                         containerColor = if (isSessionActive) Amber else ForestGreen
                     )
                 ) {
-                    Icon(if (isSessionActive) Icons.Default.Pause else Icons.Default.PlayArrow, null)
+                    Icon(if (isSessionActive && !isPaused) Icons.Default.Pause else Icons.Default.PlayArrow, null)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (isSessionActive) stringResource(R.string.to_active_session) else stringResource(R.string.practice_now),
+                        if (isSessionActive) {
+                            "${stringResource(R.string.to_active_session)} · ${formatElapsed(elapsedSeconds)}"
+                        } else stringResource(R.string.practice_now),
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White
                     )
@@ -230,4 +234,11 @@ private fun SessionCard(
             }
         }
     }
+}
+
+private fun formatElapsed(seconds: Long): String {
+    val h = seconds / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
+    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
 }

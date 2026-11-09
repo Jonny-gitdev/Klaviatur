@@ -15,6 +15,7 @@ object AppSettings {
     private const val KEY_HAS_INITIALIZED_DEFAULTS = "has_initialized_defaults"
     private const val KEY_OLGA_URI = "olga_folder_uri"
     private const val KEY_ACTIVE_EPOCHS = "active_epochs"
+    private const val KEY_WEEKLY_GOAL_MINUTES = "weekly_goal_minutes"
 
     private var prefs: SharedPreferences? = null
 
@@ -44,6 +45,15 @@ object AppSettings {
             prefs?.edit()?.putBoolean(KEY_HAS_INITIALIZED_DEFAULTS, value)?.apply()
         }
 
+    /** Wochenziel in Minuten; 0 = nicht festgelegt. */
+    private var _weeklyGoalMinutes by mutableStateOf(0)
+    var weeklyGoalMinutes: Int
+        get() = _weeklyGoalMinutes
+        set(value) {
+            _weeklyGoalMinutes = value.coerceAtLeast(0)
+            prefs?.edit()?.putInt(KEY_WEEKLY_GOAL_MINUTES, _weeklyGoalMinutes)?.apply()
+        }
+
     var activeEpochs by mutableStateOf(Epoch.entries.toSet())
         private set
 
@@ -63,6 +73,7 @@ object AppSettings {
         _language = p.getString(KEY_LANGUAGE, "System") ?: "System"
         _hasSeenTutorial = p.getBoolean(KEY_HAS_SEEN_TUTORIAL, false)
         _hasInitializedDefaults = p.getBoolean(KEY_HAS_INITIALIZED_DEFAULTS, false)
+        _weeklyGoalMinutes = p.getInt(KEY_WEEKLY_GOAL_MINUTES, 0)
 
         val uriStr = p.getString(KEY_OLGA_URI, null)
         _olgaFolderUri = if (!uriStr.isNullOrBlank()) Uri.parse(uriStr) else null

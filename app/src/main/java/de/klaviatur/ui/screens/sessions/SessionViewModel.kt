@@ -1,5 +1,6 @@
 package de.klaviatur.ui.screens.sessions
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,12 +40,23 @@ class SessionViewModel @Inject constructor(
     private val _selectedSections = MutableStateFlow<Set<Int>>(emptySet())
     val selectedSections = _selectedSections.asStateFlow()
 
+    // Die Zeit wird aus Zeitstempeln berechnet (elapsedRealtime läuft auch bei ausgeschaltetem
+    // Display weiter) statt Sekunden-Ticks zu zählen – Ticks bleiben aus, wenn Android den
+    // Prozess im Hintergrund drosselt oder einfriert.
+    private var runningSinceMs = 0L   // Beginn des aktuell laufenden Abschnitts
+    private var accumulatedMs = 0L    // Zeit aus bereits abgeschlossenen Abschnitten (vor Pausen)
+
+    private fun currentElapsedMs(): Long {
+        val running = _isSessionActive.value && !_isPaused.value
+        return accumulatedMs + if (running) SystemClock.elapsedRealtime() - runningSinceMs else 0L
+    }
+
     init {
         viewModelScope.launch {
             while (true) {
-                delay(1000)
+                delay(500)
                 if (_isSessionActive.value && !_isPaused.value) {
-                    _elapsedSeconds.value += 1
+                    _elapsedSeconds.value = currentElapsedMs() / 1000
                 }
             }
         }
@@ -67,18 +79,41 @@ class SessionViewModel @Inject constructor(
     fun startSession(piece: Piece? = null) {
         _currentPiece.value = piece
         piece?.let { _practicedPieces.value = setOf(it) }
+        accumulatedMs = 0L
+        runningSinceMs = SystemClock.elapsedRealtime()
         _isSessionActive.value = true
         _isPaused.value = false
         _elapsedSeconds.value = 0
     }
 
+    /**
+     * Startet eine Session oder führt die laufende fort: Läuft bereits eine Session, wird das Stück
+     * nur hinzugefügt (Timer läuft weiter), sonst beginnt eine neue Session.
+     */
+    fun startOrContinue(piece: Piece? = null) {
+        if (!_isSessionActive.value) {
+            startSession(piece)
+        } else if (piece != null) {
+            updateCurrentPiece(piece)
+        }
+    }
+
     fun togglePause() {
-        _isPaused.value = !_isPaused.value
+        if (!_isSessionActive.value) return
+        if (_isPaused.value) {
+            runningSinceMs = SystemClock.elapsedRealtime()
+            _isPaused.value = false
+        } else {
+            accumulatedMs = currentElapsedMs()
+            _isPaused.value = true
+            _elapsedSeconds.value = accumulatedMs / 1000
+        }
     }
 
     fun stopSession() {
+        val durationSeconds = currentElapsedMs() / 1000
         _isSessionActive.value = false
-        val durationSeconds = _elapsedSeconds.value
+        accumulatedMs = 0L
         val durationMinutes = (durationSeconds / 60).toInt()
         val finalPieces = _practicedPieces.value.toList()
         

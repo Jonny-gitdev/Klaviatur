@@ -4,24 +4,37 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import de.klaviatur.R
 import de.klaviatur.data.model.Epoch
-import de.klaviatur.data.model.Piece
 import de.klaviatur.data.model.PieceStatus
+import de.klaviatur.data.model.ProgressLevel
 import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.screens.repertoire.RepertoireViewModel
 import de.klaviatur.ui.screens.sessions.SessionViewModel
 import de.klaviatur.ui.theme.*
+import de.klaviatur.util.AppSettings
+import de.klaviatur.util.StatsCalculator
+import de.klaviatur.util.StatsRange
+import de.klaviatur.util.WeekdayStat
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,9 +47,53 @@ fun StatsScreen(
     val totalMinutes by sessionVm.totalMinutes.collectAsState()
     val streak by sessionVm.streak.collectAsState()
 
+    val locale = LocalConfiguration.current.locales[0]
+    val today = remember { LocalDate.now() }
+    var rangeIdx by rememberSaveable { mutableStateOf(1) }
+    val range = StatsRange.entries[rangeIdx]
+    var showGoalDialog by remember { mutableStateOf(false) }
+
+    // ── Berechnungen ──────────────────────────────────────────────────────────
+    val rangeSessions = remember(sessions, range) { StatsCalculator.inRange(sessions, range, today) }
+    val kpis = remember(sessions, range) { StatsCalculator.kpis(sessions, range, today) }
+    val buckets = remember(sessions, range) { StatsCalculator.activityBuckets(sessions, range, today) }
+    val weekdays = remember(sessions, range) { StatsCalculator.weekdayStats(sessions, range, today) }
+    val heatmap = remember(sessions) { StatsCalculator.heatmap(sessions, today) }
+    val longestStreak = remember(sessions) { StatsCalculator.longestStreak(sessions) }
+    val monthDays = remember(sessions) { StatsCalculator.daysPracticedInMonth(sessions, today) }
+    val minutesThisWeek = remember(sessions) { StatsCalculator.minutesThisWeek(sessions, today) }
+    val weekTrend = remember(sessions) { StatsCalculator.weekTrend(sessions, today) }
+    val usage = remember(rangeSessions, pieces) { StatsCalculator.pieceUsage(rangeSessions, pieces) }
+    val neglected = remember(pieces) { StatsCalculator.neglectedPieces(pieces, today) }
+    val levelDist = remember(pieces) { StatsCalculator.levelDistribution(pieces) }
+    val mastery = remember(pieces) { StatsCalculator.pieceMastery(pieces) }
+    val scope = remember(pieces) { StatsCalculator.repertoireScope(pieces) }
+    val added = remember(pieces) { StatsCalculator.addedPerMonth(pieces, today) }
+    val epochMatrix = remember(pieces) { StatsCalculator.epochDifficultyMatrix(pieces) }
+    val composerStatus = remember(pieces) { StatsCalculator.composerStatus(pieces) }
+    val badges = remember(sessions, pieces) { StatsCalculator.badges(sessions, pieces) }
+    val records = remember(sessions) { StatsCalculator.records(sessions) }
+
     val statusCounts = PieceStatus.entries.associateWith { s -> pieces.count { it.status == s } }
     val epochCounts = Epoch.entries.associateWith { e -> pieces.count { it.epoch == e } }
     val avgDifficulty = if (pieces.isEmpty()) 0f else pieces.sumOf { it.difficulty }.toFloat() / pieces.size
+    val hasData = pieces.isNotEmpty() || sessions.isNotEmpty()
+
+    val rangeLabels = listOf(
+        stringResource(R.string.stats_range_week), stringResource(R.string.stats_range_month),
+        stringResource(R.string.stats_range_year), stringResource(R.string.stats_range_all)
+    )
+    val piecesFmt = stringResource(R.string.pieces_count)
+    val pieceSingularFmt = stringResource(R.string.piece_count_singular)
+    fun pieceCountText(n: Int) = if (n == 1) pieceSingularFmt.format(n) else piecesFmt.format(n)
+
+    if (showGoalDialog) {
+        WeeklyGoalDialog(
+            current = AppSettings.weeklyGoalMinutes,
+            onDismiss = { showGoalDialog = false },
+            onConfirm = { AppSettings.weeklyGoalMinutes = it; showGoalDialog = false }
+        )
+    }
 
     Scaffold(
         containerColor = PaperBeige,
@@ -65,8 +122,265 @@ fun StatsScreen(
                 }
             }
 
-            // Status distribution
+            if (!hasData) {
+                item {
+                    Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                        Text(stringResource(R.string.no_stats_hint), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            // ═══ Übungsverhalten ═════════════════════════════════════════════
+            if (hasData) {
+                item { SectionHeader(stringResource(R.string.stats_section_behavior)) }
+
+                item {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatsRange.entries.forEachIndexed { i, _ ->
+                            FilterChip(
+                                selected = rangeIdx == i,
+                                onClick = { rangeIdx = i },
+                                label = { Text(rangeLabels[i]) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ForestGreenBg,
+                                    selectedLabelColor = ForestGreenText
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Wochenziel
+                item {
+                    val goal = AppSettings.weeklyGoalMinutes
+                    StatSection(stringResource(R.string.weekly_goal_title)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            ProgressRing(
+                                fraction = if (goal > 0) minutesThisWeek.toFloat() / goal else 0f,
+                                size = 88.dp, stroke = 10.dp
+                            ) {
+                                Text(
+                                    if (goal > 0) "${minutesThisWeek * 100 / goal} %" else "–",
+                                    style = MaterialTheme.typography.titleMedium.copy(color = ForestGreen)
+                                )
+                            }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                if (goal > 0) {
+                                    Text("${formatMinutes(minutesThisWeek)} / ${formatMinutes(goal)}", style = MaterialTheme.typography.titleMedium)
+                                    Text(stringResource(R.string.weekly_goal_this_week), style = MaterialTheme.typography.bodySmall)
+                                } else {
+                                    Text(stringResource(R.string.weekly_goal_none), style = MaterialTheme.typography.bodySmall)
+                                }
+                                Text(
+                                    weekTrend.percent?.let {
+                                        stringResource(R.string.stats_trend_week, formatMinutes(weekTrend.thisWeekMinutes), formatTrend(it))
+                                    } ?: stringResource(R.string.stats_last7, formatMinutes(weekTrend.thisWeekMinutes)),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                TextButton(onClick = { showGoalDialog = true }, contentPadding = PaddingValues(0.dp)) {
+                                    Text(
+                                        if (goal > 0) stringResource(R.string.action_edit) else stringResource(R.string.weekly_goal_set),
+                                        color = ForestGreen
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Kennzahlen
+                item {
+                    StatSection(stringResource(R.string.stats_kpis_title)) {
+                        Row(Modifier.fillMaxWidth()) {
+                            MiniStat(formatMinutes(kpis.totalMinutes), stringResource(R.string.kpi_total_time), Modifier.weight(1f))
+                            MiniStat("${kpis.sessionCount}", stringResource(R.string.sessions_label), Modifier.weight(1f))
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Row(Modifier.fillMaxWidth()) {
+                            MiniStat("${kpis.activeDays}", stringResource(R.string.kpi_active_days), Modifier.weight(1f))
+                            MiniStat(formatMinutes(kpis.avgSessionMinutes), stringResource(R.string.kpi_avg_session), Modifier.weight(1f))
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Row(Modifier.fillMaxWidth()) {
+                            MiniStat(formatMinutes(kpis.longestSessionMinutes), stringResource(R.string.kpi_longest_session), Modifier.weight(1f))
+                            MiniStat(String.format(locale, "%.1f", kpis.sessionsPerWeek), stringResource(R.string.kpi_sessions_per_week), Modifier.weight(1f))
+                        }
+                        kpis.trendPercent?.let { trend ->
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                stringResource(R.string.stats_trend_previous, formatTrend(trend)),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = if (trend >= 0) ForestGreen else MaterialTheme.colorScheme.error
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Serien
+                item {
+                    StatSection(stringResource(R.string.stats_streaks_title)) {
+                        Row(Modifier.fillMaxWidth()) {
+                            MiniStat("$streak 🔥", stringResource(R.string.streak_current), Modifier.weight(1f))
+                            MiniStat("$longestStreak 🏅", stringResource(R.string.streak_longest), Modifier.weight(1f))
+                            MiniStat("${monthDays.first} / ${monthDays.second}", stringResource(R.string.streak_month_days), Modifier.weight(1f))
+                        }
+                    }
+                }
+
+                // Aktivität (Tage oder Monate)
+                item {
+                    val monthly = buckets.firstOrNull()?.monthly == true
+                    StatSection(stringResource(if (monthly) R.string.chart_activity_monthly else R.string.chart_activity_daily)) {
+                        BarChart(buckets = buckets, locale = locale, valueFormatter = { formatMinutes(it) })
+                    }
+                }
+
+                // Heatmap
+                item {
+                    StatSection(stringResource(R.string.heatmap_title)) {
+                        Heatmap(
+                            weeks = heatmap, locale = locale,
+                            legendLess = stringResource(R.string.heatmap_less),
+                            legendMore = stringResource(R.string.heatmap_more)
+                        )
+                    }
+                }
+
+                // Wochentage
+                item {
+                    StatSection(stringResource(R.string.weekday_title)) {
+                        WeekdayBars(weekdays, locale)
+                    }
+                }
+            }
+
+            // ═══ Stücke ══════════════════════════════════════════════════════
             if (pieces.isNotEmpty()) {
+                item { SectionHeader(stringResource(R.string.stats_section_pieces)) }
+
+                // Meistgeübte Stücke
+                item {
+                    StatSection("${stringResource(R.string.most_practiced_title)} · ${rangeLabels[rangeIdx]}") {
+                        if (usage.isEmpty()) {
+                            Text(stringResource(R.string.most_practiced_empty), style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            val top = usage.first().sessionCount.coerceAtLeast(1)
+                            usage.forEachIndexed { i, u ->
+                                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Text("${i + 1}", style = MaterialTheme.typography.labelSmall.copy(color = TextHint), modifier = Modifier.width(18.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(u.piece.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                                            Text(u.piece.composer, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                                        }
+                                        Text(
+                                            stringResource(R.string.most_practiced_detail, u.sessionCount, formatMinutes(u.approxMinutes)),
+                                            style = MaterialTheme.typography.bodySmall.copy(color = ForestGreen)
+                                        )
+                                    }
+                                    Spacer(Modifier.height(5.dp))
+                                    StackedBar(listOf(u.sessionCount.toFloat() to ForestGreen, (top - u.sessionCount).toFloat() to PaperBeige), height = 5.dp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Vernachlässigte Stücke
+                item {
+                    StatSection(stringResource(R.string.neglected_title)) {
+                        if (neglected.isEmpty()) {
+                            Text(stringResource(R.string.neglected_none), style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            neglected.forEachIndexed { i, n ->
+                                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(n.piece.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                                        Text(n.piece.composer, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                                    }
+                                    Text(
+                                        if (n.neverPracticed) stringResource(R.string.neglected_never)
+                                        else stringResource(R.string.neglected_days, n.daysSince),
+                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.error)
+                                    )
+                                }
+                                if (i < neglected.lastIndex) HorizontalDivider(color = BorderColor, thickness = 0.5.dp)
+                            }
+                        }
+                    }
+                }
+
+                // Section-Fortschritt
+                item {
+                    StatSection(stringResource(R.string.section_progress_title)) {
+                        val totalBars = levelDist.values.sum()
+                        if (totalBars == 0) {
+                            Text(stringResource(R.string.section_progress_empty), style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                                DonutChart(
+                                    segments = ProgressLevel.entries.map { (levelDist[it] ?: 0).toFloat() to Color(it.color) },
+                                    size = 112.dp, stroke = 16.dp
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("$totalBars", style = MaterialTheme.typography.titleMedium)
+                                        Text(stringResource(R.string.section_progress_bars), style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    ProgressLevel.entries.forEach { lvl ->
+                                        val pct = (levelDist[lvl] ?: 0) * 100 / totalBars
+                                        LegendDot(Color(lvl.color), "${lvl.localizedLabel()} · $pct %")
+                                    }
+                                }
+                            }
+                            if (mastery.isNotEmpty()) {
+                                Spacer(Modifier.height(16.dp))
+                                Text(stringResource(R.string.section_progress_per_piece).uppercase(), style = MaterialTheme.typography.labelSmall)
+                                Spacer(Modifier.height(8.dp))
+                                mastery.forEach { m ->
+                                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text(m.piece.title, style = MaterialTheme.typography.bodySmall.copy(color = TextPrimary), maxLines = 1, modifier = Modifier.weight(1f))
+                                            Text("${(m.score * 100).toInt()} %", style = MaterialTheme.typography.bodySmall.copy(color = ForestGreen))
+                                        }
+                                        Spacer(Modifier.height(4.dp))
+                                        StackedBar(ProgressLevel.entries.map { (m.barsByLevel[it] ?: 0).toFloat() to Color(it.color) }, height = 6.dp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Repertoire-Umfang
+                item {
+                    StatSection(stringResource(R.string.scope_title)) {
+                        Row(Modifier.fillMaxWidth()) {
+                            MiniStat("${scope.totalBars}", stringResource(R.string.scope_bars), Modifier.weight(1f))
+                            MiniStat("${scope.keyCount}", stringResource(R.string.scope_keys), Modifier.weight(1f))
+                            MiniStat("${scope.tags.size}", stringResource(R.string.scope_tags), Modifier.weight(1f))
+                        }
+                        if (scope.tags.isNotEmpty()) {
+                            Spacer(Modifier.height(14.dp))
+                            val maxTag = scope.tags.first().second
+                            scope.tags.take(6).forEach { (tag, count) ->
+                                StatusBar(label = tag, count = count, fraction = count.toFloat() / maxTag, color = Amber)
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                }
+
+                // Neue Stücke pro Monat
+                item {
+                    StatSection(stringResource(R.string.added_per_month_title)) {
+                        BarChart(buckets = added, locale = locale, valueFormatter = { pieceCountText(it) }, chartHeight = 80.dp)
+                    }
+                }
+
+                // Status distribution
                 item {
                     StatSection(stringResource(R.string.status_distribution)) {
                         PieceStatus.entries.forEach { status ->
@@ -76,12 +390,7 @@ fun StatsScreen(
                                 label = status.localizedLabel(),
                                 count = count,
                                 fraction = frac,
-                                color = when (status) {
-                                    PieceStatus.NEW -> PurpleText
-                                    PieceStatus.LEARNING -> AmberText
-                                    PieceStatus.POLISHING -> BlueText
-                                    PieceStatus.REPERTOIRE -> ForestGreen
-                                }
+                                color = statusColor(status)
                             )
                             Spacer(Modifier.height(8.dp))
                         }
@@ -127,6 +436,20 @@ fun StatsScreen(
                     }
                 }
 
+                // Epoche × Schwierigkeit
+                if (epochMatrix.isNotEmpty()) {
+                    item {
+                        StatSection(stringResource(R.string.matrix_epoch_difficulty)) {
+                            val rows = epochMatrix.entries.sortedBy { it.key.ordinal }
+                            CountMatrix(
+                                rowLabels = rows.map { it.key.localizedLabel() },
+                                columnLabels = (1..5).map { "★$it" },
+                                values = rows.map { it.value.toList() }
+                            )
+                        }
+                    }
+                }
+
                 // Top composers
                 item {
                     val composerCounts = pieces.groupBy { it.composer }
@@ -149,7 +472,7 @@ fun StatsScreen(
                                     Text(composer, style = MaterialTheme.typography.bodyMedium)
                                 }
                                 Text(
-                                    if (count == 1) stringResource(R.string.piece_count_singular, count) else stringResource(R.string.pieces_count, count),
+                                    pieceCountText(count),
                                     style = MaterialTheme.typography.bodySmall.copy(color = ForestGreen)
                                 )
                             }
@@ -159,49 +482,62 @@ fun StatsScreen(
                     }
                 }
 
-                // Recent sessions chart (last 7 sessions as bars)
-                if (sessions.isNotEmpty()) {
+                // Komponist × Status
+                if (composerStatus.isNotEmpty()) {
                     item {
-                        StatSection(stringResource(R.string.recent_sessions)) {
-                            val recent = sessions.take(7).reversed()
-                            val maxDur = recent.maxOf { it.durationMinutes }.coerceAtLeast(1)
-                            Row(
-                                Modifier.fillMaxWidth().height(80.dp),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                recent.forEach { session ->
-                                    val frac = session.durationMinutes.toFloat() / maxDur
-                                    Column(
-                                        Modifier.weight(1f),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Bottom
-                                    ) {
-                                        Text(
-                                            "${session.durationMinutes}",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                            modifier = Modifier.padding(bottom = 3.dp)
-                                        )
-                                        Box(
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .fillMaxHeight(frac)
-                                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                                .background(ForestGreen)
-                                        )
+                        StatSection(stringResource(R.string.matrix_composer_status)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                PieceStatus.entries.forEach { LegendDot(statusColor(it), it.localizedLabel()) }
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            composerStatus.forEach { c ->
+                                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(c.composer, style = MaterialTheme.typography.bodySmall.copy(color = TextPrimary), maxLines = 1, modifier = Modifier.weight(1f))
+                                        Text("${c.total}", style = MaterialTheme.typography.bodySmall)
                                     }
+                                    Spacer(Modifier.height(4.dp))
+                                    StackedBar(PieceStatus.entries.map { (c.byStatus[it] ?: 0).toFloat() to statusColor(it) }, height = 8.dp)
                                 }
                             }
                         }
                     }
                 }
-            } else {
+            }
+
+            // ═══ Erfolge ═════════════════════════════════════════════════════
+            if (hasData) {
+                item { SectionHeader(stringResource(R.string.stats_section_achievements)) }
+
+                if (sessions.isNotEmpty()) {
+                    item {
+                        StatSection(stringResource(R.string.records_title)) {
+                            RecordRow(stringResource(R.string.record_longest_session),
+                                records.longestSessionMinutes?.let { formatMinutes(it) },
+                                records.longestSessionDate?.let { formatDate(it, locale) })
+                            RecordRow(stringResource(R.string.record_best_day),
+                                records.bestDayMinutes?.let { formatMinutes(it) },
+                                records.bestDayDate?.let { formatDate(it, locale) })
+                            RecordRow(stringResource(R.string.record_best_week),
+                                records.bestWeekMinutes?.let { formatMinutes(it) },
+                                records.bestWeekStart?.let { stringResource(R.string.record_week_of, formatDate(it, locale)) })
+                            RecordRow(stringResource(R.string.record_longest_streak), "${records.longestStreak} 🔥", null)
+                            RecordRow(stringResource(R.string.record_most_pieces),
+                                records.mostPiecesInSession?.let { pieceCountText(it) },
+                                records.mostPiecesDate?.let { formatDate(it, locale) },
+                                last = true)
+                        }
+                    }
+                }
+
                 item {
-                    Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                    StatSection(stringResource(R.string.badges_title)) {
                         Text(
-                            stringResource(R.string.no_stats_hint),
-                            style = MaterialTheme.typography.bodySmall
+                            stringResource(R.string.badges_unlocked, badges.count { it.unlocked }, badges.size),
+                            style = MaterialTheme.typography.bodySmall.copy(color = ForestGreen),
+                            modifier = Modifier.padding(bottom = 10.dp)
                         )
+                        BadgeGrid(badges)
                     }
                 }
             }
@@ -209,6 +545,119 @@ fun StatsScreen(
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
+}
+
+private fun statusColor(status: PieceStatus): Color = when (status) {
+    PieceStatus.NEW -> PurpleText
+    PieceStatus.LEARNING -> AmberText
+    PieceStatus.POLISHING -> BlueText
+    PieceStatus.REPERTOIRE -> ForestGreen
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier.padding(top = 10.dp)
+    )
+}
+
+@Composable
+private fun MiniStat(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(value, style = MaterialTheme.typography.titleLarge.copy(color = ForestGreen, fontWeight = FontWeight.W500))
+        Text(label, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun RecordRow(label: String, value: String?, detail: String?, last: Boolean = false) {
+    if (value == null) return
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 7.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Column(horizontalAlignment = Alignment.End) {
+            Text(value, style = MaterialTheme.typography.titleSmall.copy(color = ForestGreen))
+            if (detail != null) Text(detail, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+    if (!last) HorizontalDivider(color = BorderColor, thickness = 0.5.dp)
+}
+
+@Composable
+private fun WeekdayBars(stats: List<WeekdayStat>, locale: Locale) {
+    val maxAvg = stats.maxOf { it.avgMinutes }.coerceAtLeast(1f)
+    val best = stats.maxByOrNull { it.avgMinutes }?.takeIf { it.totalMinutes > 0 }
+    Row(
+        Modifier.fillMaxWidth().height(110.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        stats.forEach { st ->
+            Column(
+                Modifier.weight(1f).fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                Text(
+                    if (st.avgMinutes > 0f) "${st.avgMinutes.toInt()}" else "",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                    modifier = Modifier.padding(bottom = 3.dp)
+                )
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(if (st.avgMinutes > 0f) maxOf(3.dp, 88.dp * (st.avgMinutes / maxAvg)) else 2.dp)
+                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                        .background(if (st.avgMinutes <= 0f) BorderColor else if (st == best) Amber else ForestGreen)
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(4.dp))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        stats.forEach { st ->
+            Text(
+                st.day.getDisplayName(TextStyle.SHORT, locale),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                textAlign = TextAlign.Center,
+                softWrap = false,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+    if (best != null) {
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.weekday_best, best.day.getDisplayName(TextStyle.FULL, locale)),
+            style = MaterialTheme.typography.bodySmall.copy(color = ForestGreen)
+        )
+    }
+}
+
+@Composable
+private fun WeeklyGoalDialog(current: Int, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+    var text by remember { mutableStateOf(if (current > 0) current.toString() else "") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.weekly_goal_dialog_title)) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.filter(Char::isDigit).take(4) },
+                singleLine = true,
+                label = { Text(stringResource(R.string.minutes)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(text.toIntOrNull() ?: 0) }) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
+    )
 }
 
 @Composable

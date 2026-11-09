@@ -270,9 +270,10 @@ private fun RepertoireManagerAppUI(metronomeManager: MetronomeManager, pieceRepo
                     onEdit = { navController.navigate(Screen.AddEditPiece.route(pieceId)) },
                     onOpenSheetViewer = { id -> navController.navigate(Screen.SheetViewer.route(id)) },
                     onStartPractice = { piece ->
-                        sessionViewModel.startSession(piece)
+                        sessionViewModel.startOrContinue(piece)
                         navController.navigate(Screen.PracticeMode.route)
-                    }
+                    },
+                    sessionViewModel = sessionViewModel
                 )
             }
             composable(
@@ -284,7 +285,7 @@ private fun RepertoireManagerAppUI(metronomeManager: MetronomeManager, pieceRepo
                     pieceId = pieceId,
                     onBack = { navController.popBackStack() },
                     onStartPractice = { piece ->
-                        sessionViewModel.startSession(piece)
+                        sessionViewModel.startOrContinue(piece)
                         navController.navigate(Screen.PracticeMode.route)
                     }
                 )

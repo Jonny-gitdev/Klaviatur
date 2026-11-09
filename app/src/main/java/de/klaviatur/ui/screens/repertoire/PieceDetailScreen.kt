@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import de.klaviatur.R
+import de.klaviatur.ui.screens.sessions.SessionViewModel
 import de.klaviatur.data.model.Piece
 import de.klaviatur.data.model.PieceSection
 import de.klaviatur.data.model.ProgressLevel
@@ -57,7 +58,8 @@ fun PieceDetailScreen(
     onEdit: () -> Unit,
     onOpenSheetViewer: (Long) -> Unit = {},
     onStartPractice: (Piece) -> Unit = {},
-    viewModel: RepertoireViewModel = hiltViewModel()
+    viewModel: RepertoireViewModel = hiltViewModel(),
+    sessionViewModel: SessionViewModel = hiltViewModel()
 ) {
     val allPieces by viewModel.allPieces.collectAsState()
     val piece = allPieces.find { it.id == pieceId }
@@ -73,19 +75,12 @@ fun PieceDetailScreen(
     var showAutoSplitDialog by remember { mutableStateOf(false) }
     var barsPerSection by remember { mutableStateOf("8") }
 
-    var isPracticing by remember { mutableStateOf(false) }
-    var startTime by remember { mutableLongStateOf(0L) }
-    var practiceSeconds by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(isPracticing) {
-        if (isPracticing) {
-            startTime = System.currentTimeMillis()
-            while (isPracticing) {
-                delay(1000)
-                practiceSeconds++
-            }
-        }
-    }
+    // Der Timer gehört der globalen Session (SessionViewModel), damit sie auch im Übungs-Tab
+    // und im Fokus-Modus sichtbar ist und beim Verlassen dieses Screens weiterläuft.
+    val isSessionActive by sessionViewModel.isSessionActive.collectAsState()
+    val practicedPieces by sessionViewModel.practicedPieces.collectAsState()
+    val elapsedSeconds by sessionViewModel.elapsedSeconds.collectAsState()
+    val isPracticing = isSessionActive && practicedPieces.any { it.id == pieceId }
 
     if (showAutoSplitDialog) {
         AlertDialog(
@@ -239,22 +234,10 @@ fun PieceDetailScreen(
                         Spacer(Modifier.height(16.dp))
                         PracticeTimer(
                             isPracticing = isPracticing,
-                            seconds = practiceSeconds,
-                            onStart = {
-                                isPracticing = true
-                                practiceSeconds = 0
-                            },
-                            onStop = {
-                                isPracticing = false
-                                val durationMinutes = (practiceSeconds / 60).coerceAtLeast(1)
-                                viewModel.savePracticeSession(piece, durationMinutes)
-                                practiceSeconds = 0
-                            },
-                            onModeSwitch = {
-                                isPracticing = false
-                                practiceSeconds = 0
-                                onStartPractice(piece)
-                            }
+                            seconds = if (isSessionActive) elapsedSeconds.toInt() else 0,
+                            onStart = { sessionViewModel.startOrContinue(piece) },
+                            onStop = { sessionViewModel.stopSession() },
+                            onModeSwitch = { onStartPractice(piece) }
                         )
 
                         Spacer(Modifier.height(12.dp))
@@ -551,14 +534,12 @@ fun PracticeTimer(
                     Text(if (isPracticing) stringResource(R.string.action_stop) else stringResource(R.string.action_start))
                 }
             }
-            if (!isPracticing) {
-                TextButton(
-                    onClick = onModeSwitch,
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(bottom = 8.dp)
-                ) {
-                    Text(stringResource(R.string.switch_to_focus), fontSize = 12.sp, color = ForestGreen)
-                }
+            TextButton(
+                onClick = onModeSwitch,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(bottom = 8.dp)
+            ) {
+                Text(stringResource(R.string.switch_to_focus), fontSize = 12.sp, color = ForestGreen)
             }
         }
     }

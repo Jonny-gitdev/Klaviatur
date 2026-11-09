@@ -1,5 +1,6 @@
 package de.klaviatur.data.repository
 
+import de.klaviatur.util.StatsCalculator
 import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -150,19 +151,8 @@ class SessionRepository @Inject constructor(private val dao: SessionDao) {
     suspend fun upsert(session: PracticeSession) = dao.upsert(session)
     suspend fun delete(session: PracticeSession) = dao.delete(session)
 
-    fun calculateStreak(sessions: List<PracticeSession>): Int {
-        if (sessions.isEmpty()) return 0
-        val cal = Calendar.getInstance()
-        val today = cal.apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
-        val dayMs = 86_400_000L
-        val uniqueDays = sessions.map { (it.dateMillis / dayMs) * dayMs }.toSortedSet().toList().sortedDescending()
-        if (uniqueDays.isEmpty() || uniqueDays.first() < today - dayMs) return 0
-        var streak = 1
-        for (i in 1 until uniqueDays.size) {
-            if (uniqueDays[i - 1] - uniqueDays[i] == dayMs) streak++ else break
-        }
-        return streak
-    }
+    /** Aktuelle Serie (lokale Tage) – dieselbe Logik wie in der Statistik. */
+    fun calculateStreak(sessions: List<PracticeSession>): Int = StatsCalculator.currentStreak(sessions)
 }
 
 @Singleton
