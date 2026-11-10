@@ -5,12 +5,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -52,6 +58,7 @@ fun StatsScreen(
     var rangeIdx by rememberSaveable { mutableStateOf(1) }
     val range = StatsRange.entries[rangeIdx]
     var showGoalDialog by remember { mutableStateOf(false) }
+    var editMode by rememberSaveable { mutableStateOf(false) }
 
     // ── Berechnungen ──────────────────────────────────────────────────────────
     val rangeSessions = remember(sessions, range) { StatsCalculator.inRange(sessions, range, today) }
@@ -87,6 +94,10 @@ fun StatsScreen(
     val pieceSingularFmt = stringResource(R.string.piece_count_singular)
     fun pieceCountText(n: Int) = if (n == 1) pieceSingularFmt.format(n) else piecesFmt.format(n)
 
+    val sectionBehaviorTitle = stringResource(R.string.stats_section_behavior)
+    val sectionPiecesTitle = stringResource(R.string.stats_section_pieces)
+    val sectionAchievementsTitle = stringResource(R.string.stats_section_achievements)
+
     if (showGoalDialog) {
         WeeklyGoalDialog(
             current = AppSettings.weeklyGoalMinutes,
@@ -100,6 +111,15 @@ fun StatsScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.stats_title), style = MaterialTheme.typography.headlineMedium) },
+                actions = {
+                    IconButton(onClick = { editMode = !editMode }) {
+                        Icon(
+                            if (editMode) Icons.Default.Check else Icons.Default.Edit,
+                            contentDescription = stringResource(if (editMode) R.string.stats_edit_done else R.string.stats_edit),
+                            tint = if (editMode) ForestGreen else LocalContentColor.current
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaperWhite)
             )
         }
@@ -109,16 +129,55 @@ fun StatsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Overview tiles
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatCard("🎹", "${pieces.size}", stringResource(R.string.pieces_stat), Modifier.weight(1f))
-                    StatCard("⏱", "${totalMinutes / 60}h ${totalMinutes % 60}m", stringResource(R.string.practice_time_stat), Modifier.weight(1f))
+            // Kachel nur im Bearbeiten-Modus (dann ausgegraut) oder wenn sie angehakt ist
+            fun tile(tile: StatTile, content: @Composable () -> Unit) {
+                if (editMode || AppSettings.isStatTileVisible(tile)) {
+                    item(key = tile.name) {
+                        EditableTile(
+                            editMode = editMode,
+                            visible = AppSettings.isStatTileVisible(tile),
+                            onToggle = { AppSettings.toggleStatTile(tile) },
+                            content = content
+                        )
+                    }
                 }
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatCard("🔥", "$streak", stringResource(R.string.streak_label), Modifier.weight(1f))
-                    StatCard("📋", "${sessions.size}", stringResource(R.string.sessions_label), Modifier.weight(1f))
+            }
+            fun sectionHeader(section: StatSection, title: String) {
+                if (editMode || StatTile.entries.any { it.section == section && AppSettings.isStatTileVisible(it) }) {
+                    item(key = "header_${section.name}") { SectionHeader(title) }
+                }
+            }
+
+            if (editMode) {
+                item(key = "edit_hint") {
+                    Text(stringResource(R.string.stats_edit_hint), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            // Overview tiles
+            if (editMode || StatTile.entries.any { it.section == StatSection.OVERVIEW && AppSettings.isStatTileVisible(it) }) {
+                item(key = "overview") {
+                    val cards = listOf(
+                        OverviewCard(StatTile.OVERVIEW_PIECES, "🎹", "${pieces.size}", stringResource(R.string.pieces_stat)),
+                        OverviewCard(StatTile.OVERVIEW_TIME, "⏱", "${totalMinutes / 60}h ${totalMinutes % 60}m", stringResource(R.string.practice_time_stat)),
+                        OverviewCard(StatTile.OVERVIEW_STREAK, "🔥", "$streak", stringResource(R.string.streak_label)),
+                        OverviewCard(StatTile.OVERVIEW_SESSIONS, "📋", "${sessions.size}", stringResource(R.string.sessions_label))
+                    ).filter { editMode || AppSettings.isStatTileVisible(it.tile) }
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        cards.chunked(2).forEach { rowCards ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                rowCards.forEach { c ->
+                                    EditableTile(
+                                        editMode = editMode,
+                                        visible = AppSettings.isStatTileVisible(c.tile),
+                                        onToggle = { AppSettings.toggleStatTile(c.tile) },
+                                        modifier = Modifier.weight(1f)
+                                    ) { StatCard(c.emoji, c.value, c.label, Modifier.fillMaxWidth()) }
+                                }
+                                if (rowCards.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
                 }
             }
 
@@ -132,9 +191,9 @@ fun StatsScreen(
 
             // ═══ Übungsverhalten ═════════════════════════════════════════════
             if (hasData) {
-                item { SectionHeader(stringResource(R.string.stats_section_behavior)) }
+                sectionHeader(StatSection.BEHAVIOR, sectionBehaviorTitle)
 
-                item {
+                if (editMode || listOf(StatTile.KPIS, StatTile.ACTIVITY, StatTile.WEEKDAYS, StatTile.MOST_PRACTICED).any { AppSettings.isStatTileVisible(it) }) item(key = "range_chips") {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatsRange.entries.forEachIndexed { i, _ ->
                             FilterChip(
@@ -151,7 +210,7 @@ fun StatsScreen(
                 }
 
                 // Wochenziel
-                item {
+                tile(StatTile.WEEKLY_GOAL) {
                     val goal = AppSettings.weeklyGoalMinutes
                     StatSection(stringResource(R.string.weekly_goal_title)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -189,7 +248,7 @@ fun StatsScreen(
                 }
 
                 // Kennzahlen
-                item {
+                tile(StatTile.KPIS) {
                     StatSection(stringResource(R.string.stats_kpis_title)) {
                         Row(Modifier.fillMaxWidth()) {
                             MiniStat(formatMinutes(kpis.totalMinutes), stringResource(R.string.kpi_total_time), Modifier.weight(1f))
@@ -218,7 +277,7 @@ fun StatsScreen(
                 }
 
                 // Serien
-                item {
+                tile(StatTile.STREAKS) {
                     StatSection(stringResource(R.string.stats_streaks_title)) {
                         Row(Modifier.fillMaxWidth()) {
                             MiniStat("$streak 🔥", stringResource(R.string.streak_current), Modifier.weight(1f))
@@ -229,7 +288,7 @@ fun StatsScreen(
                 }
 
                 // Aktivität (Tage oder Monate)
-                item {
+                tile(StatTile.ACTIVITY) {
                     val monthly = buckets.firstOrNull()?.monthly == true
                     StatSection(stringResource(if (monthly) R.string.chart_activity_monthly else R.string.chart_activity_daily)) {
                         BarChart(buckets = buckets, locale = locale, valueFormatter = { formatMinutes(it) })
@@ -237,7 +296,7 @@ fun StatsScreen(
                 }
 
                 // Heatmap
-                item {
+                tile(StatTile.HEATMAP) {
                     StatSection(stringResource(R.string.heatmap_title)) {
                         Heatmap(
                             weeks = heatmap, locale = locale,
@@ -248,7 +307,7 @@ fun StatsScreen(
                 }
 
                 // Wochentage
-                item {
+                tile(StatTile.WEEKDAYS) {
                     StatSection(stringResource(R.string.weekday_title)) {
                         WeekdayBars(weekdays, locale)
                     }
@@ -257,10 +316,10 @@ fun StatsScreen(
 
             // ═══ Stücke ══════════════════════════════════════════════════════
             if (pieces.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.stats_section_pieces)) }
+                sectionHeader(StatSection.PIECES, sectionPiecesTitle)
 
                 // Meistgeübte Stücke
-                item {
+                tile(StatTile.MOST_PRACTICED) {
                     StatSection("${stringResource(R.string.most_practiced_title)} · ${rangeLabels[rangeIdx]}") {
                         if (usage.isEmpty()) {
                             Text(stringResource(R.string.most_practiced_empty), style = MaterialTheme.typography.bodySmall)
@@ -288,7 +347,7 @@ fun StatsScreen(
                 }
 
                 // Vernachlässigte Stücke
-                item {
+                tile(StatTile.NEGLECTED) {
                     StatSection(stringResource(R.string.neglected_title)) {
                         if (neglected.isEmpty()) {
                             Text(stringResource(R.string.neglected_none), style = MaterialTheme.typography.bodySmall)
@@ -312,7 +371,7 @@ fun StatsScreen(
                 }
 
                 // Section-Fortschritt
-                item {
+                tile(StatTile.SECTION_PROGRESS) {
                     StatSection(stringResource(R.string.section_progress_title)) {
                         val totalBars = levelDist.values.sum()
                         if (totalBars == 0) {
@@ -355,7 +414,7 @@ fun StatsScreen(
                 }
 
                 // Repertoire-Umfang
-                item {
+                tile(StatTile.SCOPE) {
                     StatSection(stringResource(R.string.scope_title)) {
                         Row(Modifier.fillMaxWidth()) {
                             MiniStat("${scope.totalBars}", stringResource(R.string.scope_bars), Modifier.weight(1f))
@@ -374,14 +433,14 @@ fun StatsScreen(
                 }
 
                 // Neue Stücke pro Monat
-                item {
+                tile(StatTile.ADDED_PER_MONTH) {
                     StatSection(stringResource(R.string.added_per_month_title)) {
                         BarChart(buckets = added, locale = locale, valueFormatter = { pieceCountText(it) }, chartHeight = 80.dp)
                     }
                 }
 
                 // Status distribution
-                item {
+                tile(StatTile.STATUS) {
                     StatSection(stringResource(R.string.status_distribution)) {
                         PieceStatus.entries.forEach { status ->
                             val count = statusCounts[status] ?: 0
@@ -400,7 +459,7 @@ fun StatsScreen(
                 // Epoch distribution
                 val usedEpochs = epochCounts.filter { it.value > 0 }
                 if (usedEpochs.isNotEmpty()) {
-                    item {
+                    tile(StatTile.EPOCHS) {
                         StatSection(stringResource(R.string.epochs)) {
                             usedEpochs.entries.sortedByDescending { it.value }.forEach { (epoch, count) ->
                                 StatusBar(
@@ -416,7 +475,7 @@ fun StatsScreen(
                 }
 
                 // Difficulty distribution
-                item {
+                tile(StatTile.DIFFICULTY) {
                     StatSection(stringResource(R.string.difficulty)) {
                         (1..5).forEach { d ->
                             val count = pieces.count { it.difficulty == d }
@@ -438,7 +497,7 @@ fun StatsScreen(
 
                 // Epoche × Schwierigkeit
                 if (epochMatrix.isNotEmpty()) {
-                    item {
+                    tile(StatTile.EPOCH_MATRIX) {
                         StatSection(stringResource(R.string.matrix_epoch_difficulty)) {
                             val rows = epochMatrix.entries.sortedBy { it.key.ordinal }
                             CountMatrix(
@@ -451,7 +510,7 @@ fun StatsScreen(
                 }
 
                 // Top composers
-                item {
+                tile(StatTile.TOP_COMPOSERS) {
                     val composerCounts = pieces.groupBy { it.composer }
                         .mapValues { it.value.size }
                         .entries.sortedByDescending { it.value }
@@ -484,7 +543,7 @@ fun StatsScreen(
 
                 // Komponist × Status
                 if (composerStatus.isNotEmpty()) {
-                    item {
+                    tile(StatTile.COMPOSER_STATUS) {
                         StatSection(stringResource(R.string.matrix_composer_status)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 PieceStatus.entries.forEach { LegendDot(statusColor(it), it.localizedLabel()) }
@@ -507,10 +566,10 @@ fun StatsScreen(
 
             // ═══ Erfolge ═════════════════════════════════════════════════════
             if (hasData) {
-                item { SectionHeader(stringResource(R.string.stats_section_achievements)) }
+                sectionHeader(StatSection.ACHIEVEMENTS, sectionAchievementsTitle)
 
                 if (sessions.isNotEmpty()) {
-                    item {
+                    tile(StatTile.RECORDS) {
                         StatSection(stringResource(R.string.records_title)) {
                             RecordRow(stringResource(R.string.record_longest_session),
                                 records.longestSessionMinutes?.let { formatMinutes(it) },
@@ -530,7 +589,7 @@ fun StatsScreen(
                     }
                 }
 
-                item {
+                tile(StatTile.BADGES) {
                     StatSection(stringResource(R.string.badges_title)) {
                         Text(
                             stringResource(R.string.badges_unlocked, badges.count { it.unlocked }, badges.size),
@@ -552,6 +611,43 @@ private fun statusColor(status: PieceStatus): Color = when (status) {
     PieceStatus.LEARNING -> AmberText
     PieceStatus.POLISHING -> BlueText
     PieceStatus.REPERTOIRE -> ForestGreen
+}
+
+private data class OverviewCard(val tile: StatTile, val emoji: String, val value: String, val label: String)
+
+/**
+ * Normale Ansicht: zeigt nur den Inhalt. Bearbeiten-Modus: Checkbox oben rechts; abgewählte Kacheln sind ausgegraut.
+ */
+@Composable
+private fun EditableTile(
+    editMode: Boolean,
+    visible: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    if (!editMode) {
+        Box(modifier) { content() }
+        return
+    }
+    Box(modifier) {
+        Box(
+            Modifier
+                .graphicsLayer { alpha = if (visible) 1f else 0.45f }
+                .drawWithContent {
+                    drawContent()
+                    if (!visible) {
+                        drawRoundRect(Color.Gray.copy(alpha = 0.25f), cornerRadius = CornerRadius(14.dp.toPx()))
+                    }
+                }
+        ) { content() }
+        Checkbox(
+            checked = visible,
+            onCheckedChange = { onToggle() },
+            modifier = Modifier.align(Alignment.TopEnd),
+            colors = CheckboxDefaults.colors(checkedColor = ForestGreen)
+        )
+    }
 }
 
 @Composable

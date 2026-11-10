@@ -20,6 +20,7 @@ data class RepertoireFilter(
     val status: PieceStatus? = null,
     val epoch: Epoch? = null,
     val difficulty: Int? = null,
+    val instrument: ChordInstrument? = null,
     val selectedTags: List<String> = emptyList()
 )
 
@@ -165,6 +166,7 @@ class RepertoireViewModel @Inject constructor(
             (f.status == null || p.status == f.status) &&
             (f.epoch == null || p.epoch == f.epoch) &&
             (f.difficulty == null || p.difficulty == f.difficulty) &&
+            (f.instrument == null || p.instrument?.id == f.instrument.id) &&
             (f.selectedTags.isEmpty() || p.tags.containsAll(f.selectedTags))
         }
     }

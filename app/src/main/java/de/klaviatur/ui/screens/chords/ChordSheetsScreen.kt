@@ -19,9 +19,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.klaviatur.R
+import de.klaviatur.data.model.ChordInstrument
 import de.klaviatur.data.repository.ChordSong
 import de.klaviatur.data.repository.IndexingStatus
 import de.klaviatur.ui.components.ChordImportDialog
+import de.klaviatur.ui.components.emoji
+import de.klaviatur.ui.components.label
 import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
@@ -45,6 +48,8 @@ fun ChordSheetsScreen(
     val favoriteIds by viewModel.favoriteIds.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val playlistFilter by viewModel.playlistFilter.collectAsState()
+    val instrumentFilter by viewModel.instrumentFilter.collectAsState()
+    val instrumentMap by viewModel.instrumentMap.collectAsState()
 
     var showPlaylistDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
@@ -138,10 +143,11 @@ fun ChordSheetsScreen(
                 ) {
                     item {
                         FilterChip(
-                            selected = sourceFilter == null && !onlyFavorites && playlistFilter == null,
+                            selected = sourceFilter == null && !onlyFavorites && playlistFilter == null && instrumentFilter == null,
                             onClick = {
                                 viewModel.updateSourceFilter(null)
                                 viewModel.updatePlaylistFilter(null)
+                                viewModel.updateInstrumentFilter(null)
                                 if (onlyFavorites) viewModel.toggleFavoritesFilter()
                             },
                             label = { Text(stringResource(R.string.filter_all)) }
@@ -169,6 +175,14 @@ fun ChordSheetsScreen(
                             label = { Text(stringResource(R.string.filter_ug)) }
                         )
                     }
+                    items(ChordInstrument.chordSectionInstruments) { inst ->
+                        val isSelected = instrumentFilter?.id == inst.id
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.updateInstrumentFilter(if (isSelected) null else inst) },
+                            label = { Text("${inst.emoji()} ${inst.label()}") }
+                        )
+                    }
                 }
 
                 if (playlists.isNotEmpty()) {
@@ -194,10 +208,14 @@ fun ChordSheetsScreen(
                     items(songs) { song ->
                         var showSongMenu by remember { mutableStateOf(false) }
                         val isFav = favoriteIds.contains(song.identifier)
+                        val songInstrument = instrumentMap[song.identifier]
 
                         ListItem(
                             headlineContent = { Text(song.title) },
-                            supportingContent = { Text(song.artist) },
+                            supportingContent = {
+                                val instrumentText = songInstrument?.label()
+                                Text(listOfNotNull(song.artist.takeIf { it.isNotBlank() }, instrumentText).joinToString(" · "))
+                            },
                             leadingContent = {
                                 IconButton(onClick = { viewModel.toggleFavorite(song.identifier) }) {
                                     Icon(
@@ -213,6 +231,26 @@ fun ChordSheetsScreen(
                                         Icon(Icons.Default.MoreVert, null)
                                     }
                                     DropdownMenu(expanded = showSongMenu, onDismissRequest = { showSongMenu = false }) {
+                                        Text(
+                                            stringResource(R.string.instrument_label),
+                                            modifier = Modifier.padding(8.dp),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                        ChordInstrument.chordSectionInstruments.forEach { inst ->
+                                            val isSelected = songInstrument?.id == inst.id
+                                            DropdownMenuItem(
+                                                text = { Text("${inst.emoji()} ${inst.label()}") },
+                                                leadingIcon = {
+                                                    if (isSelected) Icon(Icons.Default.Check, null)
+                                                },
+                                                onClick = {
+                                                    // Erneutes Antippen hebt die Zuordnung wieder auf
+                                                    viewModel.setInstrument(song.identifier, if (isSelected) null else inst)
+                                                    showSongMenu = false
+                                                }
+                                            )
+                                        }
+                                        HorizontalDivider()
                                         if (playlists.isNotEmpty()) {
                                             Text(
                                                 stringResource(R.string.add_to_playlist),
@@ -234,6 +272,15 @@ fun ChordSheetsScreen(
                                                 onClick = { showSongMenu = false }
                                             )
                                         }
+                                        HorizontalDivider()
+                                        DropdownMenuItem(
+                                            text = { Text("Löschen", color = MaterialTheme.colorScheme.error) },
+                                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                                            onClick = {
+                                                viewModel.deleteSong(song)
+                                                showSongMenu = false
+                                            }
+                                        )
                                     }
                                 }
                             },

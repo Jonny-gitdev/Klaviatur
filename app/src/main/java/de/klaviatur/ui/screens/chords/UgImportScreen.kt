@@ -11,10 +11,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import de.klaviatur.R
+import de.klaviatur.data.model.ChordInstrument
+import de.klaviatur.ui.components.ExistingChordSongSuggestion
+import de.klaviatur.ui.components.InstrumentChips
 import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
-import de.klaviatur.util.UgConverter
+import de.klaviatur.util.UgShareImporter
 import de.klaviatur.ui.tutorial.tutorialTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,8 +30,10 @@ fun UgImportScreen(
     var artist by remember { mutableStateOf("") }
     var ugText by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var instrument by remember { mutableStateOf<ChordInstrument?>(ChordInstrument.GUITAR) }
 
     val context = LocalContext.current
+    val allSongs by viewModel.allSongs.collectAsState()
 
     Scaffold(
         containerColor = PaperBeige,
@@ -57,11 +62,18 @@ fun UgImportScreen(
                 label = { Text(stringResource(R.string.field_title)) },
                 modifier = Modifier.fillMaxWidth().tutorialTarget("ug_title")
             )
+            ExistingChordSongSuggestion(title, allSongs)
             OutlinedTextField(
                 value = artist,
                 onValueChange = { artist = it },
                 label = { Text(stringResource(R.string.field_composer)) },
                 modifier = Modifier.fillMaxWidth()
+            )
+            InstrumentChips(
+                selected = instrument,
+                onSelect = { instrument = it },
+                allowNone = true,
+                instruments = ChordInstrument.chordSectionInstruments
             )
             OutlinedTextField(
                 value = ugText,
@@ -84,8 +96,8 @@ fun UgImportScreen(
             Button(
                 onClick = {
                     try {
-                        val chordPro = UgConverter.convert(ugText)
-                        viewModel.saveUserSong(title, artist, chordPro, "ug_import")
+                        val chordPro = UgShareImporter.toChordPro(ugText)
+                        viewModel.saveUserSong(title, artist, chordPro, "ug_import", instrument)
                         onBack()
                     } catch (e: Exception) {
                         errorMessage = e.message

@@ -2,6 +2,7 @@ package de.klaviatur
 
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
@@ -46,6 +47,7 @@ import de.klaviatur.ui.screens.chords.ChordSheetDetailScreen
 import de.klaviatur.ui.screens.chords.ChordSheetsScreen
 import de.klaviatur.ui.screens.chords.ChordViewModel
 import de.klaviatur.ui.screens.chords.ManualEntryScreen
+import de.klaviatur.ui.screens.chords.ShareImportScreen
 import de.klaviatur.ui.screens.chords.UgImportScreen
 import de.klaviatur.ui.screens.lists.ListDetailScreen
 import de.klaviatur.ui.screens.lists.ListsScreen
@@ -67,6 +69,7 @@ import de.klaviatur.ui.theme.RepertoireManagerTheme
 import de.klaviatur.ui.theme.TextHint
 import de.klaviatur.util.AppSettings
 import de.klaviatur.util.MetronomeManager
+import de.klaviatur.util.ShareInbox
 import java.util.Locale
 import javax.inject.Inject
 
@@ -77,6 +80,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Nur beim ersten Start auswerten – nach einer Drehung liefert Android denselben Intent erneut
+        if (savedInstanceState == null) handleShareIntent(intent)
         enableEdgeToEdge()
         setContent {
             val localizedContext = rememberLocalizedContext(AppSettings.language)
@@ -90,6 +95,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShareIntent(intent)
+    }
+
+    /** Text, der z. B. aus Ultimate Guitar über "Teilen" ankommt, wird zum Import weitergereicht. */
+    private fun handleShareIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        if (intent.type?.startsWith("text/") != true) return
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { it.isNotBlank() } ?: return
+        ShareInbox.pendingText = text
+        intent.action = null
     }
 }
 
@@ -167,6 +187,19 @@ private fun RepertoireManagerAppUI(metronomeManager: MetronomeManager, pieceRepo
         val target = TutorialManager.routeFor(step.screen) ?: return@LaunchedEffect
         if (concreteRoute(navController.currentBackStackEntry) != target) {
             navigateForTutorial(navController, step.screen, target)
+        }
+    }
+
+    // Geteiltes Akkordblatt (z. B. aus Ultimate Guitar): zuerst auf den Chords-Tab, dann Import-Screen
+    val sharedText = ShareInbox.pendingText
+    LaunchedEffect(sharedText) {
+        if (!sharedText.isNullOrBlank()) {
+            navController.navigate(Screen.ChordSheets.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            navController.navigate(Screen.ShareImport.route) { launchSingleTop = true }
         }
     }
 
@@ -350,6 +383,22 @@ private fun RepertoireManagerAppUI(metronomeManager: MetronomeManager, pieceRepo
             composable(Screen.UgImport.route) {
                 UgImportScreen(
                     viewModel = chordViewModel,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.ShareImport.route) {
+                ShareImportScreen(
+                    viewModel = chordViewModel,
+                    onImported = { songId ->
+                        navController.navigate(Screen.ChordSheetDetail.route("user", songId)) {
+                            popUpTo(Screen.ShareImport.route) { inclusive = true }
+                        }
+                    },
+                    onManual = {
+                        navController.navigate(Screen.UgImport.route) {
+                            popUpTo(Screen.ShareImport.route) { inclusive = true }
+                        }
+                    },
                     onBack = { navController.popBackStack() }
                 )
             }

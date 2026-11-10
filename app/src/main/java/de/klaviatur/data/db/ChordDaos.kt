@@ -3,6 +3,7 @@ package de.klaviatur.data.db
 import androidx.room.*
 import de.klaviatur.data.model.ChordFavorite
 import de.klaviatur.data.model.ChordPlaylist
+import de.klaviatur.data.model.ChordSongInstrument
 import de.klaviatur.data.model.OlgaSong
 import de.klaviatur.data.model.UserSong
 import kotlinx.coroutines.flow.Flow
@@ -71,4 +72,16 @@ interface PlaylistDao {
 
     @Delete
     suspend fun delete(playlist: ChordPlaylist)
+}
+
+@Dao
+interface InstrumentDao {
+    @Query("SELECT * FROM chord_song_instruments")
+    fun getAllFlow(): Flow<List<ChordSongInstrument>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entry: ChordSongInstrument)
+
+    @Query("DELETE FROM chord_song_instruments WHERE songIdentifier = :songIdentifier")
+    suspend fun delete(songIdentifier: String)
 }

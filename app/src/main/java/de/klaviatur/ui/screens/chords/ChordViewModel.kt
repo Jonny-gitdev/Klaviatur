@@ -5,12 +5,15 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import de.klaviatur.data.model.ChordInstrument
 import de.klaviatur.data.model.ChordPlaylist
 import de.klaviatur.data.model.UserSong
 import de.klaviatur.data.repository.ChordRepository
 import de.klaviatur.data.repository.ChordSong
 import de.klaviatur.data.repository.IndexingStatus
 import de.klaviatur.data.repository.OlgaIndexer
+import de.klaviatur.util.UgShareImporter
+import okhttp3.OkHttpClient
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,6 +39,16 @@ class ChordViewModel @Inject constructor(
     private val _onlyFavorites = MutableStateFlow(false)
     val onlyFavorites = _onlyFavorites.asStateFlow()
 
+    private val _instrumentFilter = MutableStateFlow<ChordInstrument?>(null)
+    val instrumentFilter = _instrumentFilter.asStateFlow()
+
+    /** songIdentifier -> Instrument (nur Songs, denen ein Instrument zugeordnet wurde). */
+    val instrumentMap = repository.getInstrumentsFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    val allSongs = repository.getAllSongsFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
     val playlists = repository.getPlaylistsFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -45,7 +58,7 @@ class ChordViewModel @Inject constructor(
 
     val indexingStatus = indexer.status
 
-    private val filters = combine(
+    private val baseFilters = combine(
         _searchQuery,
         _sourceFilter,
         _formatFilter,
@@ -55,12 +68,17 @@ class ChordViewModel @Inject constructor(
         ChordFilters(query, source, format, playlistId, favOnly)
     }
 
+    private val filters = combine(baseFilters, _instrumentFilter) { f, instrument ->
+        f.copy(instrument = instrument)
+    }
+
     val songs = combine(
         repository.getAllSongsFlow(),
         filters,
         favoriteIds,
-        playlists
-    ) { allSongs, f, favIds, allPlaylists ->
+        playlists,
+        instrumentMap
+    ) { allSongs, f, favIds, allPlaylists, instruments ->
         val currentPlaylist = allPlaylists.find { it.id == f.playlistId }
         
         allSongs.filter { song ->
@@ -85,7 +103,9 @@ class ChordViewModel @Inject constructor(
 
             val matchesFavorites = !f.favoritesOnly || favIds.contains(song.identifier)
 
-            matchesQuery && matchesSource && matchesFormat && matchesPlaylist && matchesFavorites
+            val matchesInstrument = f.instrument == null || instruments[song.identifier]?.id == f.instrument.id
+
+            matchesQuery && matchesSource && matchesFormat && matchesPlaylist && matchesFavorites && matchesInstrument
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -99,6 +119,14 @@ class ChordViewModel @Inject constructor(
 
     fun updateFormatFilter(format: String?) {
         _formatFilter.value = format
+    }
+
+    fun updateInstrumentFilter(instrument: ChordInstrument?) {
+        _instrumentFilter.value = instrument
+    }
+
+    fun setInstrument(songIdentifier: String, instrument: ChordInstrument?) {
+        viewModelScope.launch { repository.setInstrument(songIdentifier, instrument) }
     }
 
     fun updatePlaylistFilter(playlistId: Long?) {
@@ -165,9 +193,15 @@ class ChordViewModel @Inject constructor(
         return song to content
     }
 
-    fun saveUserSong(title: String, artist: String, content: String, source: String) {
+    fun saveUserSong(
+        title: String,
+        artist: String,
+        content: String,
+        source: String,
+        instrument: ChordInstrument? = null
+    ) {
         viewModelScope.launch {
-            repository.saveUserSong(
+            val id = repository.saveUserSong(
                 UserSong(
                     title = title,
                     artist = artist,
@@ -175,6 +209,31 @@ class ChordViewModel @Inject constructor(
                     source = source
                 )
             )
+            if (instrument != null) repository.setInstrument("user:$id", instrument)
+        }
+    }
+
+    /** Geteilter Akkordtext ohne Link (Titel/Künstler/Instrument kommen vom Nutzer). Liefert die neue Song-ID. */
+    suspend fun saveSharedText(text: String, title: String, artist: String, instrument: ChordInstrument?): String {
+        val chordPro = UgShareImporter.convertPlainText(text)
+        val id = repository.saveUserSong(
+            UserSong(title = title.ifBlank { "Ultimate Guitar" }, artist = artist, chordproText = chordPro, source = "ug_import")
+        )
+        if (instrument != null) repository.setInstrument("user:$id", instrument)
+        return id.toString()
+    }
+
+
+
+    fun updateUserSongMeta(songId: Long, title: String, artist: String) {
+        viewModelScope.launch {
+            repository.updateUserSongMeta(songId, title, artist)
+        }
+    }
+
+    fun deleteSong(song: ChordSong) {
+        viewModelScope.launch {
+            repository.deleteSong(song)
         }
     }
 
@@ -183,6 +242,7 @@ class ChordViewModel @Inject constructor(
         val source: String?,
         val format: String?,
         val playlistId: Long?,
-        val favoritesOnly: Boolean
+        val favoritesOnly: Boolean,
+        val instrument: ChordInstrument? = null
     )
 }

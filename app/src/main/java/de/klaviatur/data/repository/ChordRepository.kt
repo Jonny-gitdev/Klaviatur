@@ -6,6 +6,7 @@ import de.klaviatur.data.db.*
 import de.klaviatur.data.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,7 +33,8 @@ class ChordRepository @Inject constructor(
     private val olgaSongDao: OlgaSongDao,
     private val userSongDao: UserSongDao,
     private val favoriteDao: FavoriteDao,
-    private val playlistDao: PlaylistDao
+    private val playlistDao: PlaylistDao,
+    private val instrumentDao: InstrumentDao
 ) {
     fun getAllSongsFlow(): Flow<List<ChordSong>> {
         return combine(
@@ -46,6 +48,19 @@ class ChordRepository @Inject constructor(
     fun getFavoritesFlow(): Flow<List<ChordFavorite>> = favoriteDao.getAllFlow()
 
     fun getPlaylistsFlow(): Flow<List<ChordPlaylist>> = playlistDao.getAllFlow()
+
+    /** songIdentifier -> Instrument (nur Songs mit gesetztem Instrument). */
+    fun getInstrumentsFlow(): Flow<Map<String, ChordInstrument>> =
+        instrumentDao.getAllFlow().map { list ->
+            list.mapNotNull { e ->
+                ChordInstrument.fromId(e.instrument)?.let { e.songIdentifier to it }
+            }.toMap()
+        }
+
+    suspend fun setInstrument(songIdentifier: String, instrument: ChordInstrument?) {
+        if (instrument == null) instrumentDao.delete(songIdentifier)
+        else instrumentDao.upsert(ChordSongInstrument(songIdentifier, instrument.id))
+    }
 
     suspend fun toggleFavorite(songIdentifier: String) {
         // Simple check if exists is not available in DAO directly as suspend, 
@@ -66,6 +81,21 @@ class ChordRepository @Inject constructor(
 
     suspend fun saveUserSong(song: UserSong) = userSongDao.upsert(song)
     suspend fun deleteUserSong(song: UserSong) = userSongDao.delete(song)
+
+    suspend fun deleteSong(song: ChordSong) {
+        when (song) {
+            is ChordSong.User -> userSongDao.delete(song.song)
+            is ChordSong.Olga -> {}
+        }
+        instrumentDao.delete(song.identifier)
+        favoriteDao.delete(ChordFavorite(song.identifier))
+    }
+
+    suspend fun updateUserSongMeta(songId: Long, title: String, artist: String) {
+        userSongDao.getById(songId)?.let { song ->
+            userSongDao.upsert(song.copy(title = title.trim(), artist = artist.trim()))
+        }
+    }
 
     suspend fun loadSongContent(context: Context, song: ChordSong): String? {
         return when (song) {

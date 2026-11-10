@@ -1,12 +1,16 @@
 package de.klaviatur.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +27,7 @@ import de.klaviatur.data.model.Piece
 import de.klaviatur.data.model.PieceSection
 import de.klaviatur.data.model.PieceStatus
 import de.klaviatur.data.model.ProgressLevel
+import de.klaviatur.data.repository.ChordSong
 import de.klaviatur.ui.theme.*
 import de.klaviatur.ui.tutorial.tutorialTarget
 
@@ -202,7 +207,10 @@ fun PieceCard(
                     Text(piece.title, style = MaterialTheme.typography.titleMedium)
                     Text(piece.composer, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 2.dp))
                 }
-                StatusBadge(piece.status)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    piece.instrument?.let { Text(it.emoji(), style = MaterialTheme.typography.titleMedium) }
+                    StatusBadge(piece.status)
+                }
             }
 
             if (piece.totalBars > 0 || piece.sections.isNotEmpty()) {
@@ -231,4 +239,86 @@ fun PieceCard(
 @Composable
 fun MetaChip(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall.copy(color = TextMuted))
+}
+
+@Composable
+fun ExistingPieceSuggestion(
+    query: String,
+    pieces: List<Piece>,
+    currentPieceId: Long?
+) {
+    if (query.length < 2) return
+    val matches = remember(query, pieces, currentPieceId) {
+        pieces.filter { p ->
+            (currentPieceId == null || p.id != currentPieceId) &&
+            p.title.contains(query, ignoreCase = true)
+        }.take(3)
+    }
+    if (matches.isEmpty()) return
+
+    Spacer(Modifier.height(4.dp))
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Amber.copy(alpha = 0.15f),
+        border = BorderStroke(1.dp, Amber.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Default.Info, contentDescription = null, tint = Amber, modifier = Modifier.size(18.dp))
+                Text(
+                    text = "Bereits vorhandenes Stück:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextPrimary
+                )
+            }
+            matches.forEach { match ->
+                Text(
+                    text = "• ${match.title} – ${match.composer.ifBlank { "Unbekannt" }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextPrimary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ExistingChordSongSuggestion(
+    query: String,
+    songs: List<de.klaviatur.data.repository.ChordSong>
+) {
+    if (query.length < 2) return
+    val matches = remember(query, songs) {
+        songs.filter { s ->
+            s.title.contains(query, ignoreCase = true)
+        }.take(3)
+    }
+    if (matches.isEmpty()) return
+
+    Spacer(Modifier.height(4.dp))
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Amber.copy(alpha = 0.15f),
+        border = BorderStroke(1.dp, Amber.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Default.Info, contentDescription = null, tint = Amber, modifier = Modifier.size(18.dp))
+                Text(
+                    text = "Bereits vorhandener Song:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextPrimary
+                )
+            }
+            matches.forEach { match ->
+                Text(
+                    text = "• ${match.title} – ${match.artist.ifBlank { "Unbekannt" }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextPrimary
+                )
+            }
+        }
+    }
 }

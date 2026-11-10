@@ -6,8 +6,8 @@ import androidx.room.TypeConverters
 import de.klaviatur.data.model.*
 
 @Database(
-    entities = [OlgaSong::class, UserSong::class, ChordFavorite::class, ChordPlaylist::class],
-    version = 2,
+    entities = [OlgaSong::class, UserSong::class, ChordFavorite::class, ChordPlaylist::class, ChordSongInstrument::class],
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(ChordConverters::class)
@@ -16,4 +16,5 @@ abstract class ChordDatabase : RoomDatabase() {
     abstract fun userSongDao(): UserSongDao
     abstract fun favoriteDao(): FavoriteDao
     abstract fun playlistDao(): PlaylistDao
+    abstract fun instrumentDao(): InstrumentDao
 }

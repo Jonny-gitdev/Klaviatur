@@ -61,6 +61,10 @@ class Converters {
     @TypeConverter fun epochToString(e: Epoch?): String? = e?.name
     @TypeConverter fun stringToEpoch(s: String?): Epoch? = s?.let { Epoch.valueOf(it) }
 
+    @TypeConverter fun instrumentToString(i: ChordInstrument?): String? = i?.id
+    @TypeConverter fun stringToInstrument(s: String?): ChordInstrument? =
+        s?.let { ChordInstrument.fromId(it) }
+
     @TypeConverter fun tempoListToJson(list: List<TempoEntry>): String =
         gson.toJson(list)
     @TypeConverter fun jsonToTempoList(json: String): List<TempoEntry> =
@@ -137,6 +141,7 @@ data class Piece(
     val targetBpm: Int = 0,
     val status: PieceStatus = PieceStatus.NEW,
     val difficulty: Int = 1,           // 1–5
+    val instrument: ChordInstrument? = null,
     val notes: String = "",
     val tempoLog: List<TempoEntry> = emptyList(),
     val sheetFiles: List<SheetFile> = emptyList(),

@@ -32,6 +32,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import de.klaviatur.R
+import de.klaviatur.ui.components.ExistingPieceSuggestion
+import de.klaviatur.ui.components.InstrumentChips
 import de.klaviatur.data.model.*
 import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
@@ -55,6 +57,7 @@ fun AddEditPieceScreen(
     var difficulty by remember(existing) { mutableStateOf(existing?.difficulty ?: 1) }
 
     var epoch by remember(existing) { mutableStateOf(existing?.epoch) }
+    var instrument by remember(existing) { mutableStateOf(existing?.instrument) }
     var tags by remember(existing) { mutableStateOf(existing?.tags ?: emptyList<String>()) }
     var tagInput by remember { mutableStateOf("") }
 
@@ -151,6 +154,7 @@ fun AddEditPieceScreen(
                             title = title.trim(),
                             composer = composer.trim(),
                             epoch = epoch,
+                            instrument = instrument,
                             keySignature = existing?.keySignature ?: "",
                             totalBars = bars,
                             sections = newSections,
@@ -241,6 +245,7 @@ fun AddEditPieceScreen(
                         isError = titleError, singleLine = true, modifier = Modifier.fillMaxWidth(),
                         colors = outlinedTextFieldColors()
                     )
+                    ExistingPieceSuggestion(title, allPieces, pieceId)
                 }
                 Spacer(Modifier.height(10.dp))
                 FormField(stringResource(R.string.field_composer)) {
@@ -285,6 +290,10 @@ fun AddEditPieceScreen(
                             }
                         }
                     }
+                }
+                Spacer(Modifier.height(10.dp))
+                FormField(stringResource(R.string.instrument_label)) {
+                    InstrumentChips(selected = instrument, onSelect = { instrument = it }, allowNone = true)
                 }
                 Spacer(Modifier.height(10.dp))
                 FormField(stringResource(R.string.field_tags)) {

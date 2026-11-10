@@ -25,6 +25,11 @@ import de.klaviatur.util.AppSettings
 import de.klaviatur.util.DatabaseBackupHelper
 import kotlinx.coroutines.launch
 
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import de.klaviatur.ui.components.emoji
+import de.klaviatur.ui.components.label
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -40,6 +45,7 @@ fun SettingsScreen(
 
     var activeExportDb by remember { mutableStateOf<String?>(null) }
     var activeImportDb by remember { mutableStateOf<String?>(null) }
+    var showAddCustomInstrumentDialog by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream")
@@ -228,6 +234,102 @@ fun SettingsScreen(
                     Text(stringResource(R.string.start_tutorial_btn))
                 }
             }
+
+            // Instrument Management
+            SettingsCard(stringResource(R.string.instruments_setting)) {
+                Text(
+                    stringResource(R.string.instruments_setting_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                AppSettings.allInstruments.forEach { inst ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = AppSettings.isInstrumentVisible(inst),
+                            onCheckedChange = { AppSettings.toggleInstrumentVisibility(inst) },
+                            colors = CheckboxDefaults.colors(checkedColor = ForestGreen)
+                        )
+                        Text(
+                            text = "${inst.emoji()} ${inst.label()}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp)
+                        )
+                        if (inst.isCustom) {
+                            IconButton(onClick = { AppSettings.removeCustomInstrument(inst) }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.delete_custom_instrument),
+                                    tint = TextMuted
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = { showAddCustomInstrumentDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, tint = ForestGreen)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.add_custom_instrument), color = ForestGreen)
+                }
+            }
+        }
+
+        if (showAddCustomInstrumentDialog) {
+            var nameText by remember { mutableStateOf("") }
+            var emojiText by remember { mutableStateOf("") }
+
+            AlertDialog(
+                onDismissRequest = { showAddCustomInstrumentDialog = false },
+                title = { Text(stringResource(R.string.add_custom_instrument)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = nameText,
+                            onValueChange = { nameText = it },
+                            label = { Text(stringResource(R.string.custom_instrument_name)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = emojiText,
+                            onValueChange = { emojiText = it },
+                            label = { Text(stringResource(R.string.custom_instrument_emoji)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("🎵") }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            AppSettings.addCustomInstrument(nameText, emojiText)
+                            showAddCustomInstrumentDialog = false
+                        },
+                        enabled = nameText.isNotBlank()
+                    ) {
+                        Text(stringResource(R.string.add_button), color = ForestGreen)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddCustomInstrumentDialog = false }) {
+                        Text(stringResource(R.string.cancel_button))
+                    }
+                }
+            )
         }
     }
 }

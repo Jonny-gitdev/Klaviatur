@@ -7,7 +7,9 @@ data class ChordSheet(
 )
 
 data class ChordLine(
-    val segments: List<ChordSegment>
+    val segments: List<ChordSegment>,
+    /** Gesetzt bei Abschnitts-Überschriften wie "Verse 1" / "Chorus" ({comment: ...}). */
+    val label: String? = null
 )
 
 data class ChordSegment(
@@ -29,6 +31,10 @@ object ChordProParser {
                 }
                 trimmed.startsWith("{artist:") || trimmed.startsWith("{a:") -> {
                     artist = trimmed.substringAfter(":").substringBefore("}").trim()
+                }
+                trimmed.startsWith("{comment:") || trimmed.startsWith("{c:") -> {
+                    val text = trimmed.substringAfter(":").substringBefore("}").trim()
+                    if (text.isNotEmpty()) lines.add(ChordLine(emptyList(), label = text))
                 }
                 trimmed.startsWith("{") -> {
                     // Ignore other directives for now or handle them as comments

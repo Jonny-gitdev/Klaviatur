@@ -41,6 +41,8 @@ import de.klaviatur.data.model.TempoEntry
 import de.klaviatur.ui.components.BarProgress
 import de.klaviatur.ui.components.DifficultyDots
 import de.klaviatur.ui.components.StatusBadge
+import de.klaviatur.ui.components.emoji
+import de.klaviatur.ui.components.label
 import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
 import kotlinx.coroutines.delay
@@ -243,6 +245,7 @@ fun PieceDetailScreen(
                         Spacer(Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             DifficultyDots(piece.difficulty)
+                            piece.instrument?.let { Text("· ${it.emoji()} ${it.label()}", style = MaterialTheme.typography.bodySmall) }
                             if (piece.epoch != null) {
                                 Text("· ${piece.epoch.localizedLabel()}", style = MaterialTheme.typography.bodySmall)
                             }

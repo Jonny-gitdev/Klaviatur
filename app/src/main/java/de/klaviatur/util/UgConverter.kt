@@ -13,7 +13,10 @@ object UgConverter {
             val currentLine = lines[i]
             val nextLine = if (i + 1 < lines.size) lines[i + 1] else null
             
-            if (isChordLine(currentLine) && nextLine != null && !isChordLine(nextLine)) {
+            // Nur mit einer echten Textzeile verschmelzen (nicht mit Leerzeilen oder {directives})
+            val mergeable = nextLine != null && nextLine.isNotBlank() &&
+                !nextLine.trimStart().startsWith("{") && !isChordLine(nextLine)
+            if (isChordLine(currentLine) && mergeable && nextLine != null) {
                 // Merge chord line into the lyric line
                 chordPro.append(mergeLines(currentLine, nextLine)).append("\n")
                 i += 2 // Skip next line as it was merged
@@ -31,13 +34,22 @@ object UgConverter {
         return chordPro.toString()
     }
 
-    private fun isChordLine(line: String): Boolean {
+    private val NON_CHORD_TOKENS = Regex("^(\\|+|N\\.?C\\.?|\\(?x\\d+\\)?|\\(?\\d+x\\)?)$", RegexOption.IGNORE_CASE)
+
+    private fun isChordToken(raw: String): Boolean {
+        val token = raw.trim('(', ')')
+        if (token.isEmpty()) return true
+        if (NON_CHORD_TOKENS.matches(raw)) return true
+        val parts = ChordTheory.split(token) ?: return false
+        return ChordTheory.specFor(parts) != null
+    }
+
+    internal fun isChordLine(line: String): Boolean {
         if (line.isBlank()) return false
-        // Chords usually contain A-G, #, b, m, 7, maj, etc. and lots of spaces
         val words = line.trim().split(Regex("\\s+"))
-        val chordRegex = Regex("^[A-G][b#]?(m|maj|dim|aug|sus)?([0-9])?(add[0-9])?(/[A-G][b#]?)?$")
-        
-        return words.all { it.matches(chordRegex) || it.isEmpty() }
+        // Mindestens ein echter Akkord, sonst sind es nur Trenner wie "|" oder "x2"
+        return words.all { it.isEmpty() || isChordToken(it) } &&
+            words.any { ChordTheory.split(it.trim('(', ')')) != null }
     }
 
     private fun mergeLines(chordLine: String, lyricLine: String): String {

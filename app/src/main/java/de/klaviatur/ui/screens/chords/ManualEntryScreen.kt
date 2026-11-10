@@ -10,6 +10,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import de.klaviatur.R
+import de.klaviatur.data.model.ChordInstrument
+import de.klaviatur.ui.components.ExistingChordSongSuggestion
+import de.klaviatur.ui.components.InstrumentChips
 import de.klaviatur.ui.theme.ForestGreen
 import de.klaviatur.ui.theme.PaperBeige
 import de.klaviatur.ui.theme.PaperWhite
@@ -23,6 +26,8 @@ fun ManualEntryScreen(
     var title by remember { mutableStateOf("") }
     var artist by remember { mutableStateOf("") }
     var chordProText by remember { mutableStateOf("") }
+    var instrument by remember { mutableStateOf<ChordInstrument?>(null) }
+    val allSongs by viewModel.allSongs.collectAsState()
 
     Scaffold(
         containerColor = PaperBeige,
@@ -51,11 +56,18 @@ fun ManualEntryScreen(
                 label = { Text(stringResource(R.string.field_title)) },
                 modifier = Modifier.fillMaxWidth()
             )
+            ExistingChordSongSuggestion(title, allSongs)
             OutlinedTextField(
                 value = artist,
                 onValueChange = { artist = it },
                 label = { Text(stringResource(R.string.field_composer)) },
                 modifier = Modifier.fillMaxWidth()
+            )
+            InstrumentChips(
+                selected = instrument,
+                onSelect = { instrument = it },
+                allowNone = true,
+                instruments = ChordInstrument.chordSectionInstruments
             )
             OutlinedTextField(
                 value = chordProText,
@@ -71,7 +83,7 @@ fun ManualEntryScreen(
 
             Button(
                 onClick = {
-                    viewModel.saveUserSong(title, artist, chordProText, "manual")
+                    viewModel.saveUserSong(title, artist, chordProText, "manual", instrument)
                     onBack()
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -21,14 +21,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import de.klaviatur.R
+import de.klaviatur.data.model.ChordInstrument
 import de.klaviatur.data.model.Epoch
 import de.klaviatur.data.model.PieceStatus
 import de.klaviatur.ui.components.PieceCard
 import de.klaviatur.ui.components.SectionHeader
+import de.klaviatur.ui.components.emoji
+import de.klaviatur.ui.components.label
 import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.theme.*
-import de.klaviatur.ui.tutorial.tutorialTarget
 import de.klaviatur.ui.tutorial.TutorialManager
+import de.klaviatur.ui.tutorial.tutorialTarget
+import de.klaviatur.util.AppSettings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -254,6 +258,21 @@ private fun FilterChipRow(
                     onFilterChange(filter.copy(status = if (filter.status == status) null else status))
                 },
                 label = { Text(status.localizedLabel(), style = MaterialTheme.typography.labelSmall) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = ForestGreenBg,
+                    selectedLabelColor = ForestGreenText
+                )
+            )
+        }
+
+        AppSettings.visibleInstruments.forEach { inst ->
+            val isSelected = filter.instrument?.id == inst.id
+            FilterChip(
+                selected = isSelected,
+                onClick = {
+                    onFilterChange(filter.copy(instrument = if (isSelected) null else inst))
+                },
+                label = { Text("${inst.emoji()} ${inst.label()}", style = MaterialTheme.typography.labelSmall) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = ForestGreenBg,
                     selectedLabelColor = ForestGreenText

@@ -1,6 +1,7 @@
 package de.klaviatur.ui.components
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,7 +25,8 @@ fun ChordSheetRenderer(
     modifier: Modifier = Modifier,
     isAutoScrolling: Boolean = false,
     scrollSpeed: Float = 1f, // pixels per frame approx, or scaled
-    scrollState: ScrollState = rememberScrollState()
+    scrollState: ScrollState = rememberScrollState(),
+    onChordClick: ((String) -> Unit)? = null
 ) {
     LaunchedEffect(isAutoScrolling, scrollSpeed) {
         if (isAutoScrolling) {
@@ -44,7 +46,7 @@ fun ChordSheetRenderer(
             .padding(16.dp)
     ) {
         chordSheet.lines.forEach { line ->
-            ChordLineView(line)
+            ChordLineView(line, onChordClick)
             Spacer(modifier = Modifier.height(4.dp))
         }
     }
@@ -52,7 +54,15 @@ fun ChordSheetRenderer(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChordLineView(line: ChordLine) {
+private fun ChordLineView(line: ChordLine, onChordClick: ((String) -> Unit)?) {
+    if (line.label != null) {
+        Text(
+            text = line.label,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color(0xFF7A7570)),
+            modifier = Modifier.padding(top = 10.dp)
+        )
+        return
+    }
     val hasChords = line.segments.any { !it.chord.isNullOrBlank() }
     
     if (hasChords) {
@@ -62,13 +72,16 @@ private fun ChordLineView(line: ChordLine) {
         ) {
             line.segments.forEach { segment ->
                 Column {
+                    val chord = segment.chord
                     Text(
-                        text = segment.chord ?: "",
+                        text = chord ?: "",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = Color(0xFF2D5A27),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
-                        )
+                        ),
+                        modifier = if (chord.isNullOrBlank() || onChordClick == null) Modifier
+                        else Modifier.clickable { onChordClick(chord) }
                     )
                     Text(
                         text = segment.text.ifEmpty { " " },

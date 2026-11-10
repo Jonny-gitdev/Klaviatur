@@ -33,4 +33,5 @@ sealed class Screen(val route: String) {
     }
     object UgImport : Screen("ug_import")
     object ManualEntry : Screen("manual_entry")
+    object ShareImport : Screen("share_import")
 }
