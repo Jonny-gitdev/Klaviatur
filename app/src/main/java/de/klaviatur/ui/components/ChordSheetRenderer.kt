@@ -10,8 +10,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,12 +34,14 @@ fun ChordSheetRenderer(
     scrollState: ScrollState = rememberScrollState(),
     onChordClick: ((String) -> Unit)? = null
 ) {
-    LaunchedEffect(isAutoScrolling, scrollSpeed) {
+    var isUserTouching by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isAutoScrolling, scrollSpeed, isUserTouching) {
         if (isAutoScrolling) {
-            while (true) {
-                // Scroll small amount every frame (roughly 16ms)
-                // Speed 1f = ~60 pixels per second
-                scrollState.scrollBy(scrollSpeed)
+            while (isAutoScrolling) {
+                if (!isUserTouching) {
+                    scrollState.scrollBy(scrollSpeed)
+                }
                 delay(16)
             }
         }
@@ -41,6 +49,14 @@ fun ChordSheetRenderer(
 
     Column(
         modifier = modifier
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        isUserTouching = event.changes.any { it.pressed }
+                    }
+                }
+            }
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(16.dp)

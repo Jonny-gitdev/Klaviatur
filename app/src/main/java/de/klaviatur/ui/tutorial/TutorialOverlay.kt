@@ -309,22 +309,16 @@ private fun ActionButtons() {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         )
     }
-    Spacer(Modifier.height(6.dp))
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (TutorialManager.canGoBack) {
+    if (TutorialManager.canGoBack) {
+        Spacer(Modifier.height(6.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             TextButton(onClick = { TutorialManager.previous() }) {
                 Text(stringResource(R.string.tutorial_prev), color = TextMuted)
             }
-        } else {
-            Spacer(Modifier.width(1.dp))
-        }
-        // Notausgang: Wer nicht auf das Element tippen kann/will, kommt trotzdem weiter.
-        TextButton(onClick = { TutorialManager.next() }) {
-            Text(stringResource(R.string.tut_skip_step), color = ForestGreen)
         }
     }
 }
@@ -339,7 +333,7 @@ private fun ChoiceButtons() {
             shape = RoundedCornerShape(12.dp)
         ) { Text(stringResource(R.string.tut_choice_yes)) }
         OutlinedButton(
-            onClick = { TutorialManager.jumpTo("finish") },
+            onClick = { TutorialManager.jumpTo("stats_intro") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
         ) { Text(stringResource(R.string.tut_choice_no), color = ForestGreen) }

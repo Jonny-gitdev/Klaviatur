@@ -429,7 +429,7 @@ private fun concreteRoute(entry: NavBackStackEntry?): String? {
 }
 
 private fun navigateForTutorial(nav: NavHostController, screen: TutorialScreen, target: String) {
-    val isTab = screen == TutorialScreen.REPERTOIRE || screen == TutorialScreen.WELCOME || screen == TutorialScreen.CHORDS
+    val isTab = screen == TutorialScreen.REPERTOIRE || screen == TutorialScreen.WELCOME || screen == TutorialScreen.CHORDS || screen == TutorialScreen.STATS
     if (isTab) {
         nav.navigate(target) {
             popUpTo(nav.graph.findStartDestination().id)

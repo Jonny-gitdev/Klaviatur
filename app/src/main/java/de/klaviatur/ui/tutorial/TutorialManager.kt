@@ -24,7 +24,7 @@ import kotlinx.coroutines.delay
 
 /** Die Bildschirme, zwischen denen das Tutorial springt. */
 enum class TutorialScreen {
-    WELCOME, REPERTOIRE, ADD_PIECE, PIECE_A, SHEET_A, PIECE_B, SHEET_B, CHORDS, UG_IMPORT, FINISH
+    WELCOME, REPERTOIRE, ADD_PIECE, PIECE_A, SHEET_A, PIECE_B, SHEET_B, CHORDS, UG_IMPORT, STATS, FINISH
 }
 
 /** Ereignisse, die die echte App-UI meldet, wenn der Nutzer eine geforderte Aktion ausführt. */
@@ -173,6 +173,10 @@ object TutorialManager {
         TutorialStep("c_db", TutorialScreen.CHORDS, target = "chords_folder",
             titleRes = R.string.tut_c_db_title, textRes = R.string.tut_c_db_text),
 
+        // 7) Statistik
+        TutorialStep("stats_intro", TutorialScreen.STATS, target = "stats_edit_button",
+            titleRes = R.string.tut_stats_intro_title, textRes = R.string.tut_stats_intro_text),
+
         // Ende
         TutorialStep("finish", TutorialScreen.FINISH, TutorialKind.FINISH,
             titleRes = R.string.tut_finish_title, textRes = R.string.tut_finish_text)
@@ -287,6 +291,7 @@ object TutorialManager {
         TutorialScreen.SHEET_B -> pieceBId?.let { Screen.SheetViewer.route(it) }
         TutorialScreen.CHORDS -> Screen.ChordSheets.route
         TutorialScreen.UG_IMPORT -> Screen.UgImport.route
+        TutorialScreen.STATS -> Screen.Stats.route
         TutorialScreen.FINISH -> null
     }
 

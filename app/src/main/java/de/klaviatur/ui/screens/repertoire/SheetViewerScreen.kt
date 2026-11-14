@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +57,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import de.klaviatur.util.AppSettings
 import de.klaviatur.ui.tutorial.tutorialTarget
 import de.klaviatur.ui.tutorial.TutorialManager
 import de.klaviatur.ui.tutorial.TutorialEvent
@@ -605,54 +607,111 @@ data class SheetPage(
     val bitmap: Bitmap
 )
 
+/**
+ * Breite (px), auf die sich die gespeicherten Koordinaten der Takterkennung beziehen:
+ * Anzeigebreite im Hochformat abzüglich Seitenrand. Unabhängig von der aktuellen Drehung,
+ * damit der Handy-Modus (Querformat) dieselben Koordinaten richtig umrechnet.
+ */
+internal fun referenceDisplayWidthPx(context: Context): Float {
+    val dm = context.resources.displayMetrics
+    val shortSide = min(dm.widthPixels, dm.heightPixels)
+    return (shortSide - Math.round(32f * dm.density)).toFloat().coerceAtLeast(100f)
+}
+
+/** Ladezustand der Notenseiten: unterscheidet "lädt noch" von "fertig" und "Fehler". */
+data class SheetPagesState(
+    val pages: List<SheetPage>,
+    val isLoading: Boolean,
+    val errors: List<String>
+)
+
+private const val MAX_PAGE_BITMAP_WIDTH = 1600
+
+/** Dekodiert ein Bild heruntergesampelt, damit große Fotos keinen OutOfMemoryError auslösen. */
+private fun decodeSampledBitmap(context: Context, uri: Uri): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    var sample = 1
+    while (bounds.outWidth / (sample * 2) >= MAX_PAGE_BITMAP_WIDTH) sample *= 2
+    val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+    return context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
+}
+
+/** PdfRenderer braucht einen seekbaren Descriptor; sonst Kopie in den Cache. */
+private fun openPdfDescriptor(context: Context, uri: Uri, fileId: String): android.os.ParcelFileDescriptor? {
+    try {
+        val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+        if (pfd != null) {
+            try {
+                android.system.Os.lseek(pfd.fileDescriptor, 0, android.system.OsConstants.SEEK_SET)
+                return pfd
+            } catch (_: Exception) {
+                pfd.close()
+            }
+        }
+    } catch (_: Exception) {
+    }
+    val cache = java.io.File(context.cacheDir, "pdf_$fileId.pdf")
+    context.contentResolver.openInputStream(uri)?.use { input ->
+        cache.outputStream().use { out -> input.copyTo(out) }
+    } ?: return null
+    return android.os.ParcelFileDescriptor.open(cache, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+}
+
 @Composable
 fun rememberSheetPages(
     context: Context,
     sheetFiles: List<SheetFile>,
     sheetFileKeys: List<String>
-): List<SheetPage> {
-    var pages by remember(sheetFileKeys) { mutableStateOf<List<SheetPage>>(emptyList()) }
+): SheetPagesState {
+    var state by remember(sheetFileKeys) {
+        mutableStateOf(SheetPagesState(emptyList(), isLoading = sheetFiles.isNotEmpty(), errors = emptyList()))
+    }
 
     LaunchedEffect(sheetFileKeys) {
         if (sheetFiles.isEmpty()) {
-            pages = emptyList()
+            state = SheetPagesState(emptyList(), false, emptyList())
             return@LaunchedEffect
         }
 
-        withContext(Dispatchers.IO) {
-            val loadedPages = mutableListOf<SheetPage>()
-            for (file in sheetFiles) {
-                try {
+        val loadedPages = mutableListOf<SheetPage>()
+        val errors = mutableListOf<String>()
+        for (file in sheetFiles) {
+            try {
+                withContext(Dispatchers.IO) {
                     val uri = Uri.parse(file.uriString)
+                    restoreBundledAsset(context, uri)
                     if (file.type == SheetFileType.PDF) {
-                        val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: continue
+                        val pfd = openPdfDescriptor(context, uri, file.id)
+                            ?: throw java.io.IOException("Datei konnte nicht geöffnet werden")
                         pfd.use {
                             val renderer = PdfRenderer(pfd)
                             try {
-                                val pageCount = renderer.pageCount
-                                for (i in 0 until pageCount) {
+                                // Je mehr Seiten, desto kleiner die Bitmaps (Speicher)
+                                val targetWidth = when {
+                                    renderer.pageCount <= 6 -> 1800
+                                    renderer.pageCount <= 12 -> 1400
+                                    else -> 1200
+                                }
+                                for (i in 0 until renderer.pageCount) {
                                     val pdfPage = renderer.openPage(i)
                                     try {
-                                        val targetWidth = 1200
-                                        val scale = (targetWidth.toFloat() / pdfPage.width.toFloat()).coerceAtLeast(1.0f)
-                                        val renderWidth = (pdfPage.width * scale).toInt()
-                                        val renderHeight = (pdfPage.height * scale).toInt()
-
+                                        val scale = targetWidth.toFloat() / pdfPage.width.toFloat()
                                         val bmp = Bitmap.createBitmap(
-                                            renderWidth.coerceAtLeast(100),
-                                            renderHeight.coerceAtLeast(100),
+                                            (pdfPage.width * scale).toInt().coerceAtLeast(100),
+                                            (pdfPage.height * scale).toInt().coerceAtLeast(100),
                                             Bitmap.Config.ARGB_8888
                                         )
                                         bmp.eraseColor(android.graphics.Color.WHITE)
                                         pdfPage.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-
                                         loadedPages.add(SheetPage(file.id, i, bmp))
-                                        val currentList = loadedPages.toList()
-                                        withContext(Dispatchers.Main) {
-                                            pages = currentList
-                                        }
                                     } finally {
                                         pdfPage.close()
+                                    }
+                                    val snapshot = loadedPages.toList()
+                                    withContext(Dispatchers.Main) {
+                                        state = state.copy(pages = snapshot)
                                     }
                                 }
                             } finally {
@@ -660,23 +719,25 @@ fun rememberSheetPages(
                             }
                         }
                     } else {
-                        val bmp = context.contentResolver.openInputStream(uri)?.use {
-                            BitmapFactory.decodeStream(it)
-                        }
-                        if (bmp != null) {
-                            loadedPages.add(SheetPage(file.id, 0, bmp))
-                            val currentList = loadedPages.toList()
-                            withContext(Dispatchers.Main) {
-                                pages = currentList
-                            }
+                        val bmp = decodeSampledBitmap(context, uri)
+                            ?: throw java.io.IOException("Bild konnte nicht gelesen werden")
+                        loadedPages.add(SheetPage(file.id, 0, bmp))
+                        val snapshot = loadedPages.toList()
+                        withContext(Dispatchers.Main) {
+                            state = state.copy(pages = snapshot)
                         }
                     }
-                } catch (_: Exception) {
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (t: Throwable) {
+                android.util.Log.e("SheetViewer", "Laden fehlgeschlagen: ${file.name}", t)
+                errors.add("${file.name}: ${friendlySheetError(t)}")
             }
         }
+        state = SheetPagesState(loadedPages.toList(), isLoading = false, errors = errors)
     }
-    return pages
+    return state
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -714,6 +775,7 @@ fun SheetViewerScreen(
 
     var isAutoScrolling by remember { mutableStateOf(false) }
     var scrollSpeed by remember { mutableFloatStateOf(1.5f) }
+    var isUserTouching by remember { mutableStateOf(false) }
 
     var selectedTool by remember { mutableStateOf(DrawingTool.SCROLL) }
     var editAction by remember { mutableStateOf(EditAction.NONE) }
@@ -751,9 +813,11 @@ fun SheetViewerScreen(
     val sheetFileKeys = remember(piece?.sheetFiles) {
         piece?.sheetFiles?.map { "${it.id}:${it.uriString}" } ?: emptyList()
     }
-    val sheetPages = rememberSheetPages(context, piece?.sheetFiles ?: emptyList(), sheetFileKeys)
+    val sheetPagesState = rememberSheetPages(context, piece?.sheetFiles ?: emptyList(), sheetFileKeys)
+    val sheetPages = sheetPagesState.pages
 
     var isFullscreen by remember { mutableStateOf(false) }
+    var phoneMode by rememberSaveable { mutableStateOf(false) }
 
     fun getCurrentPageIndex(pageWidthPx: Float): Int {
         if (sheetPages.isEmpty()) return 0
@@ -772,9 +836,7 @@ fun SheetViewerScreen(
         return sheetPages.size - 1
     }
 
-    val displayWidthPx = with(density) {
-        (context.resources.displayMetrics.widthPixels - 32.dp.roundToPx()).toFloat()
-    }.coerceAtLeast(100f)
+    val displayWidthPx = referenceDisplayWidthPx(context)
 
     // Takte extrahieren & Gesamttaktanzahl synchronisieren
     val allMeasures = remember(sheetPages, piece?.pageAnnotations) {
@@ -782,26 +844,41 @@ fun SheetViewerScreen(
         else extractAllMeasures(sheetPages, piece?.pageAnnotations ?: emptyList(), displayWidthPx)
     }
     val totalCalculatedBars = allMeasures.size
-    LaunchedEffect(totalCalculatedBars, piece) {
-        if (piece != null && totalCalculatedBars > 0 && totalCalculatedBars != piece.totalBars) {
+    LaunchedEffect(totalCalculatedBars, piece, sheetPagesState.isLoading) {
+        if (!sheetPagesState.isLoading && piece != null && totalCalculatedBars > 0 && totalCalculatedBars != piece.totalBars) {
             viewModel.upsertPiece(piece.copy(totalBars = totalCalculatedBars))
         }
     }
 
-    LaunchedEffect(isAutoScrolling, scrollSpeed) {
+    LaunchedEffect(isAutoScrolling, scrollSpeed, isUserTouching) {
         if (isAutoScrolling) {
             while (isAutoScrolling) {
-                scrollState.scrollTo((scrollState.value + scrollSpeed.toInt()).coerceAtMost(scrollState.maxValue))
-                if (scrollState.value >= scrollState.maxValue) {
-                    isAutoScrolling = false
-                    break
+                if (!isUserTouching) {
+                    val step = scrollSpeed.toInt().coerceAtLeast(1)
+                    val nextVal = (scrollState.value + step).coerceAtMost(scrollState.maxValue)
+                    scrollState.scrollTo(nextVal)
+                    if (scrollState.value >= scrollState.maxValue) {
+                        isAutoScrolling = false
+                        break
+                    }
                 }
                 delay(16L)
             }
         }
     }
 
-    Scaffold(
+    if (phoneMode) {
+        PhoneModeScreen(
+            sheetPages = sheetPages,
+            measures = allMeasures,
+            sections = piece?.sections ?: emptyList(),
+            showSections = showSectionsOverlay,
+            referenceWidthPx = displayWidthPx,
+            barsPerScreen = AppSettings.phoneModeBars,
+            onBarsPerScreenChange = { AppSettings.phoneModeBars = it },
+            onExit = { phoneMode = false }
+        )
+    } else Scaffold(
         containerColor = PaperBeige,
         topBar = {
             if (!isFullscreen) {
@@ -810,12 +887,10 @@ fun SheetViewerScreen(
                     title = {
                         Column {
                             Text(piece?.title ?: stringResource(R.string.sheet_viewer_title), style = MaterialTheme.typography.titleMedium)
-                            val barText = if (piece != null && piece.totalBars > 0) "${piece.totalBars} Takte" else ""
-                            val pageWidthPx = with(density) {
-                                (context.resources.displayMetrics.widthPixels - 32.dp.roundToPx()).toFloat()
-                            }.coerceAtLeast(100f)
+                            val barText = if (piece != null && piece.totalBars > 0) stringResource(R.string.bars_total_count, piece.totalBars) else ""
+                            val pageWidthPx = referenceDisplayWidthPx(context)
                             val currentPage = getCurrentPageIndex(pageWidthPx)
-                            val pageText = if (sheetPages.size > 1) "Seite ${currentPage + 1}/${sheetPages.size}" else ""
+                            val pageText = if (sheetPages.size > 1) stringResource(R.string.page_format, currentPage + 1, sheetPages.size) else ""
                             val subtitle = listOf(barText, pageText).filter { it.isNotBlank() }.joinToString(" • ")
                             if (subtitle.isNotEmpty()) {
                                 Text(
@@ -832,10 +907,27 @@ fun SheetViewerScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = {
+                            if (allMeasures.isEmpty()) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.detect_bars_first_toast),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                phoneMode = true
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.StayCurrentLandscape,
+                                contentDescription = stringResource(R.string.phone_mode),
+                                tint = LocalContentColor.current
+                            )
+                        }
                         IconButton(onClick = { isFullscreen = true }) {
                             Icon(
                                 imageVector = Icons.Default.Fullscreen,
-                                contentDescription = "Vollbildmodus",
+                                contentDescription = stringResource(R.string.fullscreen_mode),
                                 tint = LocalContentColor.current
                             )
                         }
@@ -873,32 +965,32 @@ fun SheetViewerScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             ToolButton(
-                                label = "(Verschieben)",
+                                label = stringResource(R.string.tool_scroll),
                                 icon = Icons.Default.PanTool,
                                 selected = selectedTool == DrawingTool.SCROLL,
                                 onClick = { selectedTool = DrawingTool.SCROLL },
                                 modifier = Modifier.tutorialTarget("tool_scroll")
                             )
                             ToolButton(
-                                label = "(Stift)",
+                                label = stringResource(R.string.tool_pen),
                                 icon = Icons.Default.Create,
                                 selected = selectedTool == DrawingTool.PEN,
                                 onClick = { selectedTool = DrawingTool.PEN }
                             )
                             ToolButton(
-                                label = "(Marker)",
+                                label = stringResource(R.string.tool_highlighter),
                                 icon = Icons.Default.Highlight,
                                 selected = selectedTool == DrawingTool.HIGHLIGHTER,
                                 onClick = { selectedTool = DrawingTool.HIGHLIGHTER }
                             )
                             ToolButton(
-                                label = "(Radierer)",
+                                label = stringResource(R.string.tool_eraser),
                                 icon = Icons.Default.CleaningServices,
                                 selected = selectedTool == DrawingTool.ERASER,
                                 onClick = { selectedTool = DrawingTool.ERASER }
                             )
                             ToolButton(
-                                label = "(Takt)",
+                                label = stringResource(R.string.tool_measure),
                                 icon = Icons.Default.Tune,
                                 selected = selectedTool == DrawingTool.EDIT,
                                 onClick = {
@@ -908,7 +1000,7 @@ fun SheetViewerScreen(
                                 modifier = Modifier.tutorialTarget("tool_edit")
                             )
                             ToolButton(
-                                label = "(Abschnitte)",
+                                label = stringResource(R.string.tool_sections_overlay),
                                 icon = Icons.Default.Bookmark,
                                 selected = showSectionsOverlay,
                                 onClick = {
@@ -946,7 +1038,7 @@ fun SheetViewerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (selectedTool == DrawingTool.PEN) "Stiftfarbe:" else "Textmarker:",
+                                    text = if (selectedTool == DrawingTool.PEN) stringResource(R.string.color_pen_label) else stringResource(R.string.color_highlighter_label),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextMuted
                                 )
@@ -982,7 +1074,7 @@ fun SheetViewerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 ToolButton(
-                                    label = if (isDetectingLines) "Erkennen..." else "Takterkennung",
+                                    label = if (isDetectingLines) stringResource(R.string.tool_detecting) else stringResource(R.string.tool_detect),
                                     icon = Icons.Default.AutoAwesome,
                                     selected = isDetectingLines,
                                     modifier = Modifier.tutorialTarget("tool_detect"),
@@ -992,10 +1084,7 @@ fun SheetViewerScreen(
                                         isDetectingLines = true
                                         coroutineScope.launch {
                                             try {
-                                                val displayWidthPx = with(density) {
-                                                    (context.resources.displayMetrics.widthPixels -
-                                                            32.dp.roundToPx()).toFloat()
-                                                }.coerceAtLeast(100f)
+                                                val displayWidthPx = referenceDisplayWidthPx(context)
                                                 var updatedAnnotations = currentPiece.pageAnnotations
                                                 var detectedCount = 0
                                                 for (page in sheetPages) {
@@ -1030,12 +1119,12 @@ fun SheetViewerScreen(
                                                 }
                                                 Toast.makeText(
                                                     context,
-                                                    if (detectedCount > 0) "Notensysteme auf $detectedCount Seite(n) erkannt ($newTotal Takte)."
-                                                    else "Keine Notensysteme sicher erkannt.",
+                                                    if (detectedCount > 0) context.getString(R.string.bars_detected_toast, detectedCount, newTotal)
+                                                    else context.getString(R.string.no_bars_detected_toast),
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             } catch (e: Exception) {
-                                                Toast.makeText(context, "Erkennung fehlgeschlagen: ${e.localizedMessage ?: "unbekannter Fehler"}", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(context, context.getString(R.string.detection_failed_toast, e.localizedMessage ?: ""), Toast.LENGTH_LONG).show()
                                             } finally {
                                                 isDetectingLines = false
                                                 TutorialManager.onEvent(TutorialEvent.DETECTION_DONE)
@@ -1044,7 +1133,7 @@ fun SheetViewerScreen(
                                     }
                                 )
                                 ToolButton(
-                                    label = "System +",
+                                    label = stringResource(R.string.tool_add_system),
                                     selected = editAction == EditAction.ADD_SYSTEM,
                                     onClick = {
                                         editAction = if (editAction == EditAction.ADD_SYSTEM) EditAction.NONE
@@ -1052,7 +1141,7 @@ fun SheetViewerScreen(
                                     }
                                 )
                                 ToolButton(
-                                    label = "Taktstrich +",
+                                    label = stringResource(R.string.tool_add_barline),
                                     selected = editAction == EditAction.ADD_BARLINE,
                                     onClick = {
                                         editAction = if (editAction == EditAction.ADD_BARLINE) EditAction.NONE
@@ -1060,7 +1149,7 @@ fun SheetViewerScreen(
                                     }
                                 )
                                 ToolButton(
-                                    label = "Löschen",
+                                    label = stringResource(R.string.action_delete),
                                     icon = Icons.Default.Delete,
                                     selected = editAction == EditAction.DELETE,
                                     onClick = {
@@ -1071,10 +1160,10 @@ fun SheetViewerScreen(
                             }
                             Text(
                                 text = when (editAction) {
-                                    EditAction.NONE -> "Linie antippen = auswählen · lange drücken und ziehen = verschieben"
-                                    EditAction.ADD_SYSTEM -> "Auf die Mitte des neuen Systems tippen"
-                                    EditAction.ADD_BARLINE -> "In ein System tippen, um einen Taktstrich zu setzen"
-                                    EditAction.DELETE -> "Auf ein System oder einen Taktstrich tippen, um ihn zu löschen"
+                                    EditAction.NONE -> stringResource(R.string.edit_hint_none)
+                                    EditAction.ADD_SYSTEM -> stringResource(R.string.edit_hint_add_system)
+                                    EditAction.ADD_BARLINE -> stringResource(R.string.edit_hint_add_barline)
+                                    EditAction.DELETE -> stringResource(R.string.edit_hint_delete)
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextMuted,
@@ -1114,9 +1203,7 @@ fun SheetViewerScreen(
                 }
             }
         } else {
-            val pageWidthPx = with(density) {
-                (context.resources.displayMetrics.widthPixels - 32.dp.roundToPx()).toFloat()
-            }.coerceAtLeast(100f)
+            val pageWidthPx = referenceDisplayWidthPx(context)
             val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
             val currentColor = when (selectedTool) {
                 DrawingTool.HIGHLIGHTER -> highlighterColor.copy(alpha = 0.35f)
@@ -1196,9 +1283,9 @@ fun SheetViewerScreen(
                                 val count = selectedMeasures.size
                                 val ranges = groupContiguousMeasures(selectedMeasures)
                                 val text = if (ranges.size > 1) {
-                                    "$count Takte in ${ranges.size} Abschnitten"
+                                    stringResource(R.string.measures_in_sections_format, count, ranges.size)
                                 } else {
-                                    "$count Takt(e) ausgewählt"
+                                    stringResource(R.string.measures_selected_format, count)
                                 }
                                 Text(
                                     text = text,
@@ -1216,13 +1303,13 @@ fun SheetViewerScreen(
                                     ) {
                                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(4.dp))
-                                        Text("Abschnitt erstellen", style = MaterialTheme.typography.labelMedium)
+                                        Text(stringResource(R.string.create_section_button), style = MaterialTheme.typography.labelMedium)
                                     }
                                     IconButton(
                                         onClick = { selectedMeasures = emptySet() },
                                         modifier = Modifier.size(32.dp)
                                     ) {
-                                        Icon(Icons.Default.Close, "Auswahl aufheben", tint = ForestGreen)
+                                        Icon(Icons.Default.Close, stringResource(R.string.clear_selection), tint = ForestGreen)
                                     }
                                 }
                             }
@@ -1243,7 +1330,7 @@ fun SheetViewerScreen(
                         ) {
                             Column(Modifier.padding(8.dp)) {
                                 Text(
-                                    text = "Abschnitte im Stück (${piece.sections.size}):",
+                                    text = stringResource(R.string.sections_in_piece_format, piece.sections.size),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextMuted,
                                     modifier = Modifier.padding(bottom = 4.dp)
@@ -1270,7 +1357,7 @@ fun SheetViewerScreen(
                                                         .clip(CircleShape)
                                                         .background(color)
                                                 )
-                                                val barText = if (sec.startBar == sec.endBar) "Takt ${sec.startBar}" else "Takt ${sec.startBar}–${sec.endBar}"
+                                                val barText = if (sec.startBar == sec.endBar) stringResource(R.string.bar_single_format, sec.startBar) else stringResource(R.string.bar_range_format, sec.startBar, sec.endBar)
                                                 val titleText = if (sec.name.isNotBlank()) "${sec.name} ($barText)" else barText
                                                 Text(
                                                     text = "$titleText • ${sec.level.localizedLabel()}",
@@ -1288,6 +1375,14 @@ fun SheetViewerScreen(
                     Column(
                         Modifier
                             .fillMaxSize()
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        isUserTouching = event.changes.any { it.pressed }
+                                    }
+                                }
+                            }
                             .onGloballyPositioned { viewportOffset = it.positionInParent() }
                             .tutorialTarget("sheet_content")
                             .clipToBounds()
@@ -1308,8 +1403,17 @@ fun SheetViewerScreen(
                             verticalArrangement = Arrangement.spacedBy(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            if (sheetPages.isEmpty()) {
+                            if (sheetPagesState.isLoading && sheetPages.isEmpty()) {
                                 CircularProgressIndicator()
+                            }
+                            if (!sheetPagesState.isLoading) {
+                                sheetPagesState.errors.forEach { msg ->
+                                    Text(
+                                        text = stringResource(R.string.could_not_load, msg),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                             sheetPages.forEach { sheetPage ->
                                 val pageMeasures = allMeasures.filter {
@@ -1358,7 +1462,7 @@ fun SheetViewerScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.FullscreenExit,
-                            contentDescription = "Vollbild beenden",
+                            contentDescription = stringResource(R.string.exit_fullscreen),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -1375,7 +1479,7 @@ fun SheetViewerScreen(
                             shadowElevation = 2.dp
                         ) {
                             Text(
-                                text = "Seite ${currentPage + 1} / ${sheetPages.size}",
+                                text = stringResource(R.string.page_format, currentPage + 1, sheetPages.size),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -1397,7 +1501,7 @@ fun SheetViewerScreen(
                 viewModel.updateSections(piece, updatedSections)
                 selectedMeasures = emptySet()
                 showCreateSectionDialog = false
-                Toast.makeText(context, "${newSections.size} Abschnitt(e) hinzugefügt.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.sections_added_toast, newSections.size), Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -1463,7 +1567,7 @@ fun CreateSectionDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = if (ranges.size == 1) "Abschnitt erstellen" else "${ranges.size} Abschnitte erstellen",
+                text = stringResource(R.string.create_section_title),
                 style = MaterialTheme.typography.titleMedium
             )
         },
@@ -1473,7 +1577,7 @@ fun CreateSectionDialog(
                     OutlinedTextField(
                         value = singleName,
                         onValueChange = { singleName = it },
-                        label = { Text("Name des Abschnitts") },
+                        label = { Text(stringResource(R.string.section_name_label)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1563,12 +1667,12 @@ fun CreateSectionDialog(
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = ForestGreen)
             ) {
-                Text("Hinzufügen")
+                Text(stringResource(R.string.add_button))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )

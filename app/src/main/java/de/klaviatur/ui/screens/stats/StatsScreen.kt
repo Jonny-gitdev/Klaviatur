@@ -34,6 +34,7 @@ import de.klaviatur.ui.components.localizedLabel
 import de.klaviatur.ui.screens.repertoire.RepertoireViewModel
 import de.klaviatur.ui.screens.sessions.SessionViewModel
 import de.klaviatur.ui.theme.*
+import de.klaviatur.ui.tutorial.tutorialTarget
 import de.klaviatur.util.AppSettings
 import de.klaviatur.util.StatsCalculator
 import de.klaviatur.util.StatsRange
@@ -112,7 +113,10 @@ fun StatsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.stats_title), style = MaterialTheme.typography.headlineMedium) },
                 actions = {
-                    IconButton(onClick = { editMode = !editMode }) {
+                    IconButton(
+                        onClick = { editMode = !editMode },
+                        modifier = Modifier.tutorialTarget("stats_edit_button")
+                    ) {
                         Icon(
                             if (editMode) Icons.Default.Check else Icons.Default.Edit,
                             contentDescription = stringResource(if (editMode) R.string.stats_edit_done else R.string.stats_edit),

@@ -29,6 +29,7 @@ object AppSettings {
     private const val KEY_HIDDEN_STAT_TILES = "hidden_stat_tiles"
     private const val KEY_CUSTOM_INSTRUMENTS = "custom_instruments_json"
     private const val KEY_ENABLED_INSTRUMENT_IDS = "enabled_instrument_ids"
+    private const val KEY_PHONE_MODE_BARS = "phone_mode_bars"
 
     private var prefs: SharedPreferences? = null
     private val gson = Gson()
@@ -66,6 +67,15 @@ object AppSettings {
         set(value) {
             _weeklyGoalMinutes = value.coerceAtLeast(0)
             prefs?.edit()?.putInt(KEY_WEEKLY_GOAL_MINUTES, _weeklyGoalMinutes)?.apply()
+        }
+
+    /** Handy-Modus: Anzahl Takte, die nebeneinander auf dem Bildschirm sichtbar sind (1–8). */
+    private var _phoneModeBars by mutableStateOf(2)
+    var phoneModeBars: Int
+        get() = _phoneModeBars
+        set(value) {
+            _phoneModeBars = value.coerceIn(1, 8)
+            prefs?.edit()?.putInt(KEY_PHONE_MODE_BARS, _phoneModeBars)?.apply()
         }
 
     var activeEpochs by mutableStateOf(Epoch.entries.toSet())
@@ -159,6 +169,7 @@ object AppSettings {
         _hasSeenTutorial = p.getBoolean(KEY_HAS_SEEN_TUTORIAL, false)
         _hasInitializedDefaults = p.getBoolean(KEY_HAS_INITIALIZED_DEFAULTS, false)
         _weeklyGoalMinutes = p.getInt(KEY_WEEKLY_GOAL_MINUTES, 0)
+        _phoneModeBars = p.getInt(KEY_PHONE_MODE_BARS, 2).coerceIn(1, 8)
 
         val uriStr = p.getString(KEY_OLGA_URI, null)
         _olgaFolderUri = if (!uriStr.isNullOrBlank()) Uri.parse(uriStr) else null

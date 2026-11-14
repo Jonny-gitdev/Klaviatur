@@ -93,7 +93,9 @@ fun AddEditPieceScreen(
             val mime = context.contentResolver.getType(uri) ?: ""
             val type = if (mime.contains("pdf", ignoreCase = true)) SheetFileType.PDF else SheetFileType.IMAGE
             val name = getFileName(context, uri) ?: "Noten"
-            val newFile = SheetFile(uriString = uri.toString(), name = name, type = type)
+            val newId = java.util.UUID.randomUUID().toString()
+                        val storedUri = copySheetToAppStorage(context, uri, newId, type) ?: uri
+                        val newFile = SheetFile(id = newId, uriString = storedUri.toString(), name = name, type = type)
             sheetFiles = sheetFiles + newFile
         }
     }
